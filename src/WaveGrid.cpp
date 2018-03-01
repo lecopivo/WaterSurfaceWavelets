@@ -22,17 +22,17 @@ WaveGrid::WaveGrid(Settings s) {
 
   // boundary info
   islandCenter << 0.5 * (m_xmin[0] + m_xmax[0]), 0.5 * (m_xmin[1] + m_xmax[1]);
-  islandRadius = 0.3 * std::min(m_xmax[0] - m_xmin[0], m_xmax[1] - m_xmin[1]);
+  islandRadius = 0.1 * std::min(m_xmax[0] - m_xmin[0], m_xmax[1] - m_xmin[1]);
 }
 
 void WaveGrid::timeStep(const double dt, const double t) {
   advectionStep(dt);
-  // diffusionStep(dt);
+  diffusionStep(dt);
   precompute1DBuffers(t);
 }
 
-Real WaveGrid::cflTimeStep() const{
-  return std::min(m_dx[0],m_dx[1])/groupSpeed(waveNumber(0));
+Real WaveGrid::cflTimeStep() const {
+  return std::min(m_dx[0], m_dx[1]) / groupSpeed(waveNumber(0));
 }
 
 auto WaveGrid::interpolateAmplitude(Grid const &grid) const {
@@ -50,10 +50,7 @@ auto WaveGrid::interpolateAmplitude(Grid const &grid) const {
     // return a default value for points outside of the simulation box
     if (a_x < 0 || a_x >= grid.dimension(0) || a_y < 0 ||
         a_y >= grid.dimension(1)) {
-      if (b_theta == 0)
-        return defaultAmplitude(b_theta, c_k);
-      else
-        return 0.0;
+      return defaultAmplitude(b_theta, c_k);
     }
 
     // if the point is in the domain the return the actual value of the grid
@@ -65,8 +62,9 @@ auto WaveGrid::interpolateAmplitude(Grid const &grid) const {
   };
 
   auto interpolation =
-      InterpolationDimWise(LinearInterpolation, LinearInterpolation,
-                           LinearInterpolation, ConstantInterpolation);
+    //InterpolationDimWise(LinearInterpolation, LinearInterpolation,
+    InterpolationDimWise(LinearInterpolation, LinearInterpolation,
+			 LinearInterpolation, ConstantInterpolation);
 
   auto igrid = DomainInterpolation(interpolation, domain)(extended_grid);
 
@@ -76,10 +74,15 @@ auto WaveGrid::interpolateAmplitude(Grid const &grid) const {
   };
 }
 
+Real WaveGrid::amplitude(const Vec4 pos) const {
+  return interpolateAmplitude(m_amplitude)(pos);
+}
+
 void WaveGrid::advectionStep(const double dt) {
 
   auto amplitude = interpolateAmplitude(m_amplitude);
 
+#pragma omp parallel for collapse(2)
   for (int a_x = 0; a_x < gridDim(0); a_x++) {
     for (int a_y = 0; a_y < gridDim(1); a_y++) {
 
@@ -94,7 +97,7 @@ void WaveGrid::advectionStep(const double dt) {
             Real k = waveNumber(c_k);
             Vec2 cg = groupVelocity(theta, k);
 
-	    Vec2 newPos = pos - dt*cg;
+            Vec2 newPos = pos - dt * cg;
             Vec4 newPos4;
             newPos4 << newPos(0), newPos(1), theta, k;
 
@@ -125,13 +128,16 @@ Vec4 WaveGrid::boundaryReflection(const Vec4 pos4) const {
   // Boundary normal is approximatex by the levelset gradient
   Vec2 n = levelsetGrad(pos);
 
-  pos = pos - 2.0*ls * n;
+  Real theta = pos4(2); // This is in grid space!
+  Vec2 d;
+  d << cos(theta), sin(theta);
+
+  pos = pos - 2.0 * ls * n;
   assert(inDomain(pos));
 
   // reflect wave vector around boundary normal
-  Real theta = pos4(2); // This is in grid space!
-  Real normalAngle = atan2(n(1), n(0));
-  Real reflected_theta = -theta + normalAngle + M_PI;
+  d = d - 2.0 * (n.dot(d)) * n;
+  Real reflected_theta = atan2(d(1), d(0));
 
   Vec4 newPos4;
   newPos4 << pos(0), pos(1), reflected_theta, pos4(3);
@@ -150,35 +156,46 @@ Vec2 WaveGrid::levelsetGrad(const Vec2 pos) const {
   return x.normalized();
 }
 
-// void diffusionStep(const double dt) {
-//   for (int a_x = 0; a_x < gridDim(0); a_x++) {
-//     for (int a_y = 0; a_x < gridDim(1); a_y++) {
-//       for (int b_theta = 0; a_x < gridDim(2); b_theta++) {
-//         for (int c_k = 0; a_x < gridDim(3); c_k++) {
+void WaveGrid::diffusionStep(const double dt) {
+#pragma omp parallel for collapse(2)
+  for (int a_x = 0; a_x < gridDim(0); a_x++) {
+    for (int a_y = 0; a_y < gridDim(1); a_y++) {
 
-//           // this is
-//           double gamma = 0.025 * groupSpeed(waveNumber(c_k)) * dt / m_dx(0);
-//           double delta =
-//               1e-5 * dt * pow(m_dx(3), 2) * dispersion(waveNumber(c_k));
+      float ls = levelset(nodePosition(a_x, a_y));
+      
+      for (int b_theta = 0; b_theta < gridDim(2); b_theta++) {
+        for (int c_k = 0; c_k < gridDim(3); c_k++) {
 
-//           m_newAmplitude({a_x, a_y, b_theta, c_k}) =
-//               (1 - gamma_k - gamma_alpha) *
-//                   m_amplitude({a_x, a_y, b_theta, c_k}) +
-//               0.5 * gamma_k *
-//                   (m_amplitude({a_x, a_y, b_theta + 1, c_k}) +
-//                    m_amplitude({a_x, a_y, b_theta - 1, c_k})) +
-//               0.5 * gamma_alpha *
-//                   (m_amplitude({a_x, a_y, b_theta, c_k + 1}) +
-//                    m_amplitude({a_x, a_y, b_theta, c_k + 1}));
-//         }
-//       }
-//     }
-//   }
-// }
+          auto dispersion = [](int i) { return 1.0; };
+
+          // this is
+          double gamma = 1.5 * 0.025 * groupSpeed(waveNumber(c_k)) * dt * m_idx[0];
+          double delta =
+              1e-5 * dt * pow(m_dx[3], 2) * dispersion(waveNumber(c_k));
+
+          m_newAmplitude(a_x, a_y, b_theta, c_k) =
+              ls <= 2 ? m_amplitude(a_x, a_y, b_theta, c_k)
+                      : //(1 - gamma - delta) *
+                  (1 - gamma) * m_amplitude(a_x, a_y, b_theta, c_k) +
+                      0.5 * gamma *
+                          (m_amplitude(a_x, a_y,
+                                       pos_modulo(b_theta + 1, gridDim(2)),
+                                       c_k) +
+                           m_amplitude(a_x, a_y,
+                                       pos_modulo(b_theta - 1, gridDim(2)),
+                                       c_k));
+          // 0.5 * delta *
+          //     (m_amplitude(a_x, a_y, b_theta, c_k + 1) +
+          //      m_amplitude(a_x, a_y, b_theta, c_k + 1));
+        }
+      }
+    }
+  }
+  std::swap(m_newAmplitude, m_amplitude);
+}
 
 void WaveGrid::precompute1DBuffers(const double dt) {
   for (int c_k = 0; c_k < gridDim(3); c_k++) {
-    
   }
 }
 
@@ -258,8 +275,8 @@ Vec2 WaveGrid::groupVelocity(const Real theta, const Real k) const {
 }
 
 Real WaveGrid::defaultAmplitude(const int b_theta, const int c_k) const {
-  if(c_k==0)
-    return 1.0;
+  if (b_theta == gridDim(2) / 4)
+    return 0.4;
   return 0.0;
 }
 

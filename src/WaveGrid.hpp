@@ -51,6 +51,8 @@ public:
 
   Real cflTimeStep() const;
 
+  Real amplitude(const Vec4 pos) const;
+
 public:
   // private:
   void advectionStep(const double dt);
