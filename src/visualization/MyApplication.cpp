@@ -44,7 +44,7 @@ struct CameraParameters {
   Vector3 target         = {0.f, 0.f, 0.f};
   float   longitude      = pi / 4;
   float   latitude       = pi / 4;
-  float   targetDistance = 4.0f;
+  float   targetDistance = 20.0f;
 
   Matrix4 getCameraTransformation() {
     Matrix4 trans = Matrix4::translation(target) *
@@ -108,7 +108,7 @@ private:
   float   amplitude  = 0.5;
   float   time       = 0.0;
   Vector2 kvec       = {1.0, 0.0};
-  float   plane_size = 30.0;
+  float   plane_size = 20.0;
   int     wave_type  = 1; // { STOKES = 0, GERSTNER = 1 }
 };
 
@@ -135,16 +135,18 @@ MyApplication::MyApplication(const Arguments &arguments)
   // plane = new DrawablePlane(&_scene, &_drawables, 200, 200);
   // plane->translate(Vector3{0, 0, -5});
   water_surface = new WaterSurfaceMesh(&_scene, &_drawables, 200);
-  water_surface->setVertices([](int i, WaterSurfaceMesh::VertexData &v) {
-    v.amplitude[0] = v.position[0];
-    v.amplitude[1] = v.position[1];
-    v.amplitude[2] = v.position[2];
-    v.amplitude[3] = 1.0;
-  });
 }
 
 void MyApplication::drawEvent() {
   defaultFramebuffer.clear(FramebufferClear::Color | FramebufferClear::Depth);
+
+  water_surface->setVertices([&](int i, WaterSurfaceMesh::VertexData &v) {
+    v.position *= plane_size;
+    for (int i = 0; i < DIR_NUM; i++) {
+      v.amplitude[i] = 0;
+    }
+    v.amplitude[0] = amplitude;
+  });
 
   // switch (wave_type) {
   // case 0:
