@@ -44,7 +44,7 @@ struct CameraParameters {
   Vector3 target         = {0.f, 0.f, 0.f};
   float   longitude      = pi / 4;
   float   latitude       = pi / 4;
-  float   targetDistance = 20.0f;
+  float   targetDistance = 100.0f;
 
   Matrix4 getCameraTransformation() {
     Matrix4 trans = Matrix4::translation(target) *
@@ -105,10 +105,10 @@ private:
 
   // Stokes wave
   float logdt      = -2.0;
-  float amplitude  = 0.5;
+  float amplitude  = 0.16;
   float time       = 0.0;
   float waveNumber = 1.0;
-  float plane_size = 20.0;
+  float plane_size = 40.0;
   int   wave_type  = 1; // { STOKES = 0, GERSTNER = 1 }
 };
 

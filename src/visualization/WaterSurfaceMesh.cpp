@@ -79,9 +79,9 @@ void WaterSurfaceMesh::draw(const Matrix4 &       transformationMatrix,
                             SceneGraph::Camera3D &camera) {
 
   _shader
-      // .setLightPosition(
-      //     camera.cameraMatrix().transformPoint({15.0f, 15.0f, 30.0f}))
-    .setLightPosition(Vector3{0.0,5.0,5.0})
+      .setLightPosition(
+          camera.cameraMatrix().transformPoint({15.0f, 15.0f, 30.0f}))
+    //    .setLightPosition(Vector3{0.0,5.0,5.0})
       .setTransformationMatrix(transformationMatrix)
       .setNormalMatrix(transformationMatrix.rotation())
       .setProjectionMatrix(camera.projectionMatrix());
