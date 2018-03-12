@@ -104,12 +104,12 @@ private:
   WaterSurfaceMesh *water_surface;
 
   // Stokes wave
-  float   logdt      = -1.0;
-  float   amplitude  = 0.5;
-  float   time       = 0.0;
-  Vector2 kvec       = {1.0, 0.0};
-  float   plane_size = 20.0;
-  int     wave_type  = 1; // { STOKES = 0, GERSTNER = 1 }
+  float logdt      = -1.0;
+  float amplitude  = 0.5;
+  float time       = 0.0;
+  float waveNumber = 1.0;
+  float plane_size = 20.0;
+  int   wave_type  = 1; // { STOKES = 0, GERSTNER = 1 }
 };
 
 MyApplication::MyApplication(const Arguments &arguments)
@@ -142,10 +142,16 @@ void MyApplication::drawEvent() {
 
   water_surface->setVertices([&](int i, WaterSurfaceMesh::VertexData &v) {
     v.position *= plane_size;
-    for (int i = 0; i < DIR_NUM; i++) {
-      v.amplitude[i] = 0;
+
+    float angle = atan2(v.position[1], v.position[0]);
+    float a     = DIR_NUM * (angle + pi) / (2 * pi);
+    int   ia    = (int)floor(a);
+    float wa    = a - ia;
+
+    if (ia == 0 || ia==1) {
+      v.amplitude[ia]                 = amplitude * (1 - wa);
+      v.amplitude[(ia + 1) % DIR_NUM] = amplitude * wa;
     }
-    v.amplitude[0] = amplitude;
   });
 
   // switch (wave_type) {
@@ -172,6 +178,8 @@ void MyApplication::drawEvent() {
   //   break;
   // }
 
+  water_surface->_shader.setTime(time);
+
   time += pow(10.f, logdt);
 
   _camera->draw(_drawables);
@@ -185,7 +193,6 @@ void MyApplication::drawGui() {
   _gui.newFrame(windowSize(), defaultFramebuffer.viewport().size());
 
   // ImGui::ColorEdit3("Box color", &(_color[0]));
-  ImGui::Text("asdfasdf");
 
   // if (ImGui::Button("Vertex color shader")) {
   //   plane->_shader = Shaders::VertexColor3D{};
@@ -211,7 +218,8 @@ void MyApplication::drawGui() {
   ImGui::SliderFloat("plane size", &plane_size, 1, 100);
   ImGui::SliderFloat("amplitude", &amplitude, 0, 2);
   ImGui::SliderFloat("log10(dt)", &logdt, -3, 3);
-  ImGui::SliderFloat2("wave vector", &kvec[0], -3, 3);
+  if (ImGui::SliderFloat("wave number", &waveNumber, 0.1, 3))
+    water_surface->_shader.setWaveNumber(waveNumber);
   ImGui::RadioButton("Stokes", &wave_type, 0);
   ImGui::SameLine();
   ImGui::RadioButton("Gerstner", &wave_type, 1);

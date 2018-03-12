@@ -20,13 +20,16 @@ WaterSurfaceMesh::WaterSurfaceMesh(Object3D *                   parent,
     : Object3D{parent}, SceneGraph::Drawable3D{*this, group} {
 
   _shader.setColor(Color4{0.4f, 0.4f, 0.8f, 1.f})
-      .setAmbientColor(Color3{0.25f, 0.2f, 0.23f});
+      .setAmbientColor(Color3{0.25f, 0.2f, 0.23f})
+      .setTime(0)
+      .setWaveNumber(1);
 
   _mesh.setPrimitive(MeshPrimitive::Triangles)
       .setCount(_indices.size())
       .setIndexBuffer(_indexBuffer, 0, Mesh::IndexType::UnsignedInt);
-  
-  addVertexBuffer(_mesh,_vertexBuffer,std::make_index_sequence<DIR_NUM/4>{});
+
+  addVertexBuffer(_mesh, _vertexBuffer,
+                  std::make_index_sequence<DIR_NUM / 4>{});
 
   int   nx = n;
   int   ny = n;
@@ -38,12 +41,8 @@ WaterSurfaceMesh::WaterSurfaceMesh(Object3D *                   parent,
     for (int j = 0; j <= ny; j++) {
       VertexData vertex;
       vertex.position = Vector3{-1.0f + i * dx, -1.0f + j * dy, 0.0f};
-      for (int k = 0; k < DIR_NUM / 4; k++) {
-        vertex.amplitude[0 + 4 * k] = vertex.position[0];
-        vertex.amplitude[1 + 4 * k] = vertex.position[1];
-        vertex.amplitude[2 + 4 * k] = vertex.position[2];
-        vertex.amplitude[3 + 4 * k] = 1.0;
-      }
+      for (int k = 0; k < DIR_NUM; k++)
+        vertex.amplitude[k] = 0;
       _data.push_back(vertex);
     }
   }
@@ -81,7 +80,7 @@ void WaterSurfaceMesh::draw(const Matrix4 &       transformationMatrix,
 
   _shader
       .setLightPosition(
-          camera.cameraMatrix().transformPoint({5.0f, 5.0f, 7.0f}))
+          camera.cameraMatrix().transformPoint({15.0f, 15.0f, 30.0f}))
       .setTransformationMatrix(transformationMatrix)
       .setNormalMatrix(transformationMatrix.rotation())
       .setProjectionMatrix(camera.projectionMatrix());
