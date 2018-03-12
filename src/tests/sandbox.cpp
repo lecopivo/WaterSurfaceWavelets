@@ -1,249 +1,351 @@
 #include <Magnum/Buffer.h>
 #include <Magnum/DefaultFramebuffer.h>
-#include <Magnum/Math/Vector3.h>
+#include <Magnum/Math/Color.h>
 #include <Magnum/Mesh.h>
+#include <Magnum/MeshTools/Compile.h>
+#include <Magnum/MeshTools/CompressIndices.h>
+#include <Magnum/MeshTools/Interleave.h>
 #include <Magnum/Platform/Sdl2Application.h>
+#include <Magnum/Primitives/Cube.h>
+#include <Magnum/Primitives/Icosphere.h>
+#include <Magnum/Primitives/Plane.h>
+#include <Magnum/Primitives/UVSphere.h>
+#include <Magnum/Renderer.h>
+#include <Magnum/SceneGraph/Camera.h>
+#include <Magnum/SceneGraph/Drawable.h>
+#include <Magnum/SceneGraph/MatrixTransformation3D.h>
+#include <Magnum/SceneGraph/Scene.h>
+#include <Magnum/Shader.h>
+#include <Magnum/Shaders/Phong.h>
 #include <Magnum/Shaders/VertexColor.h>
+#include <Magnum/Trade/MeshData3D.h>
 
-#include "../WaveGrid.hpp"
+#include <MagnumImGui/MagnumImGui.h>
+#include <MagnumImGui/imgui.h>
+
 #include <iostream>
 
+#include "../WaveGrid.hpp"
+#include "DrawingPrimitives.hpp"
+
 namespace Magnum {
-namespace Examples {
 
-struct ColorVertex {
-  Vector2 position;
-  Color3 color;
-};
+using namespace Magnum::Math::Literals;
 
-template <class LineVertex, class Shader> class DrawingLine {
+typedef SceneGraph::Object<SceneGraph::MatrixTransformation3D> Object3D;
+typedef SceneGraph::Scene<SceneGraph::MatrixTransformation3D>  Scene3D;
+
+auto settings = []() {
+  WaveGrid::Settings s;
+  s.xmin = -50.0;
+  s.xmax = +50.0;
+  s.ymin = -50.0;
+  s.ymax = +50.0;
+
+  s.n_x     = 100;
+  s.n_y     = 100;
+  s.n_theta = 32;
+  s.n_k     = 1;
+
+  return s;
+}();
+
+Color4 gridAmplitudeColor(float x, float y, WaveGrid &grid) {
+  Magnum::Color4 color = {0.f, 0.f, 0.f, 1.f};
+
+  for (int b_theta = 0; b_theta < grid.gridDim(2); b_theta++) {
+    Vec4 pos;
+    Real theta = grid.idxToPos(b_theta, 2);
+    Real k     = grid.idxToPos(0, 3);
+    pos << x, y, theta, k;
+    Real a = grid.amplitude(pos);
+
+    color += Color4::fromHsv(Rad{(float)theta}, 1.f, a);
+  }
+  return color;
+}
+
+Vector3 simToWorld(Vec2 v) {
+  float x = (v[0] - settings.xmin) / (settings.xmax - settings.xmin);
+  float y = (v[1] - settings.ymin) / (settings.ymax - settings.ymin);
+  x       = 2.0 * x - 1.0;
+  y       = 2.0 * y - 1.0;
+  return Vector3{x, y, 0};
+}
+
+Vec2 worldToSim(Vector3 v) {
+  float x = 0.5 * (v[0] + 1.f);
+  float y = 0.5 * (v[1] + 1.f);
+  x       = x * (settings.xmax - settings.xmin) + settings.xmin;
+  y       = y * (settings.ymax - settings.ymin) + settings.ymin;
+  Vec2 out;
+  out << x, y;
+  return out;
+}
+
+class PrimitivesExample : public Platform::Application {
 public:
-  DrawingLine(int n) {
-    vertexData.resize(n + 1);
-
-    vertexBuffer.setData(vertexData, BufferUsage::DynamicDraw);
-    mesh.setPrimitive(MeshPrimitive::LineStrip)
-        .setCount(n + 1)
-        .addVertexBuffer(vertexBuffer, 0, typename Shader::Position{},
-                         typename Shader::Color{
-                             Shaders::VertexColor2D::Color::Components::Three});
-  }
-
-  template <class Fun> void setVertexData(Fun fun) {
-    for (int i = 0; i < vertexData.size(); i++) {
-      fun(i, vertexData[i]);
-    }
-    vertexBuffer.setData(vertexData, BufferUsage::DynamicDraw);
-  }
-
-  void draw() { mesh.draw(shader); }
-
-public:
-  std::vector<LineVertex> vertexData;
-  Buffer vertexBuffer;
-  Mesh mesh;
-  Shader shader;
-};
-
-template <class Vertex, class Shader> class DrawingPlane {
-public:
-  DrawingPlane(int _nx, int _ny) {
-    nx = _nx;
-    ny = _ny;
-
-    vertexData.resize((nx + 1) * (ny + 1));
-    indexData.clear();
-    indexData.reserve(6 * nx * ny);
-
-    for (int i = 0; i < nx + 1; i++) {
-      for (int j = 0; j < ny + 1; j++) {
-
-        if (i < nx && j < ny) {
-          indexData.push_back(j + i * (ny + 1));
-          indexData.push_back((j + 1) + i * (ny + 1));
-          indexData.push_back(j + (i + 1) * (ny + 1));
-
-          indexData.push_back(j + (i + 1) * (ny + 1));
-          indexData.push_back((j + 1) + (i + 1) * (ny + 1));
-          indexData.push_back((j + 1) + i * (ny + 1));
-        }
-      }
-    }
-
-    vertexBuffer.setData(vertexData, BufferUsage::DynamicDraw);
-    indexBuffer.setData(indexData, BufferUsage::StaticDraw);
-    mesh.setPrimitive(MeshPrimitive::Triangles)
-        .setCount(6 * nx * ny)
-        .addVertexBuffer(vertexBuffer, 0, typename Shader::Position{},
-                         typename Shader::Color{
-                             Shaders::VertexColor2D::Color::Components::Three})
-        .setIndexBuffer(indexBuffer, 0, Mesh::IndexType::UnsignedInt);
-  }
-
-  void draw() { mesh.draw(shader); }
-
-  //  Fun: void(float x, float y, PlaneVertex & vertex)
-  template <class Fun> void setVertexData(Fun fun) {
-
-    const int NX = nx;
-    const int NY = ny;
-
-#pragma omp parallel for collapse(2)
-    for (int i = 0; i <= NX; i++) {
-      for (int j = 0; j <= NY; j++) {
-        fun(i, j, vertexData[j + i * (ny + 1)]);
-      }
-    }
-    vertexBuffer.setData(vertexData, BufferUsage::DynamicDraw);
-  }
-
-  std::vector<Vertex> vertexData;
-  std::vector<UnsignedInt> indexData;
-
-  Buffer vertexBuffer, indexBuffer;
-  Mesh mesh;
-  Shader shader;
-
-  float nx, ny;
-};
-
-class Scene {
-public:
-  Scene() : grid(initSettings()) {
-
-    for (int b_theta = 0; b_theta < grid.gridDim(2); b_theta++) {
-      grid.m_amplitude(20, 50, b_theta, 0) = 100.0;
-    }
-
-    grid.islandCenter << 20.0, 0.0;
-    grid.islandRadius = 20.0;
-  }
-
-  WaveGrid::Settings initSettings() {
-    WaveGrid::Settings s;
-    s.xmin = -50;
-    s.xmax = 50;
-    s.ymin = -50;
-    s.ymax = 50;
-
-    s.n_x = 200;
-    s.n_y = 200;
-    s.n_theta = 32;
-    s.n_k = 1;
-
-    s.spectrumType = WaveGrid::Settings::HAHA_SPECTRUM;
-
-    return s;
-  }
-
-  void timeStep(float lambda) {
-    double dt = lambda * grid.cflTimeStep();
-    t += dt;
-    grid.timeStep(dt, t);
-  }
-
-  Color3 amplitudeColor(float x, float y) {
-
-    Color3 out = {0, 0, 0};
-
-    Vec4 pos4;
-    double k = grid.waveNumber(0);
-
-    pos4 << x, y, 0, k;
-
-    for (int b_theta = 0; b_theta < grid.gridDim(2); b_theta++) {
-      float theta = grid.waveVectorAngle(b_theta);
-
-      pos4(2) = theta;
-      out = out +
-            Color3::fromHsv(Deg{(float)(360.0 * (theta + 3.0) / (2.0 * M_PI))},
-                            1.0, grid.amplitude(pos4));
-    }
-    return out;
-  }
-
-  void drawAmplitude() {
-    DrawingPlane<ColorVertex, Shaders::VertexColor2D> drawingPlane(
-        grid.gridDim(0), grid.gridDim(1));
-
-    drawingPlane.setVertexData([this](int i, int j, ColorVertex &vertex) {
-      Vec2 pos = grid.nodePosition(i, j);
-      vertex.position = Vector2{(float)pos(0), (float)pos(1)};
-      vertex.color = amplitudeColor(pos(0), pos(1));
-    });
-    drawingPlane.shader.setTransformationProjectionMatrix(
-        Matrix3::scaling({0.02, 0.02}));
-    drawingPlane.draw();
-  }
-
-  void drawTrajectory(Vec2 pos, float theta) {
-    int n = 100;
-    DrawingLine<ColorVertex, Shaders::VertexColor2D> drawingLine(n);
-
-    Vec4 pos4;
-    pos4 << pos(0), pos(1), theta, grid.waveNumber(0);
-
-    float dt = 0.8 * grid.cflTimeStep();
-
-    drawingLine.setVertexData([&pos4, dt, this](int i, ColorVertex &vertex) {
-      vertex.position = {(float)pos4(0), (float)pos4(1)};
-      vertex.color = Color3{1.0f, 1.0f, 1.0f};
-
-      Vec2 cg = grid.groupVelocity(pos4(2), pos4(3));
-
-      pos4.segment<2>(0) += dt * cg;
-      pos4 = grid.boundaryReflection(pos4);
-    });
-    drawingLine.shader.setTransformationProjectionMatrix(
-        Matrix3::scaling({0.02, 0.02}));
-    drawingLine.draw();
-  }
-
-public:
-  WaveGrid grid;
-  double t = 0.0;
-};
-
-class TriangleExample : public Platform::Application {
-public:
-  explicit TriangleExample(const Arguments &arguments);
+  explicit PrimitivesExample(const Arguments &arguments);
 
 private:
   void drawEvent() override;
+  void drawGui();
+  void update();
 
-  Scene scene;
+  void viewportEvent(const Vector2i &size) override;
+
+  void keyPressEvent(KeyEvent &event) override;
+  void keyReleaseEvent(KeyEvent &event) override;
+  void mousePressEvent(MouseEvent &event) override;
+  void mouseReleaseEvent(MouseEvent &event) override;
+  void mouseMoveEvent(MouseMoveEvent &event) override;
+  void mouseScrollEvent(MouseScrollEvent &event) override;
+  void textInputEvent(TextInputEvent &event) override;
+
+  void mouseRotation(MouseMoveEvent const &event, Vector2 delta);
+  void mouseZoom(MouseMoveEvent const &event, Vector2 delta);
+  void mousePan(MouseMoveEvent const &event, Vector2 delta);
+
+  Vector3 mousePlanePosition(Vector2i mouseScreenPos);
+
+  Scene3D                     _scene;
+  Object3D *                  _cameraObject;
+  SceneGraph::Camera3D *      _camera;
+  SceneGraph::DrawableGroup3D _drawables;
+
+  Vector2i _previousMousePosition;
+  Vector3  _mousePlanePosition[2];
+
+  MagnumImGui _gui;
+
+  DrawablePlane * plane;
+  DrawableSphere *sphere;
+  DrawableLine *  line;
+
+  WaveGrid _waveGrid;
+  float    time = 0.f;
+
+  Color3 _color;
 };
 
-TriangleExample::TriangleExample(const Arguments &arguments)
-    : Platform::Application{
-          arguments, Configuration{}
-                         .setTitle("Magnum Triangle Example")
-                         .setWindowFlags(Configuration::WindowFlag::Resizable)
-                         .setSize({1100, 1100})} {}
+PrimitivesExample::PrimitivesExample(const Arguments &arguments)
+    : Platform::Application{arguments,
+                            Configuration{}
+                                .setTitle("Magnum object picking example")
+                                .setWindowFlags(Sdl2Application::Configuration::
+                                                    WindowFlag::Resizable)},
+      _waveGrid(settings) {
 
-float time = 0.0;
+  Renderer::enable(Renderer::Feature::DepthTest);
+  Renderer::enable(Renderer::Feature::FaceCulling);
 
-void TriangleExample::drawEvent() {
-  defaultFramebuffer.clear(FramebufferClear::Color);
+  //   /* Configure camera */
+  _cameraObject = new Object3D{&_scene};
+  _cameraObject->translate(Vector3::zAxis(4.0f)).rotateX(Rad{M_PI / 4});
+  _camera = new SceneGraph::Camera3D{*_cameraObject};
+  viewportEvent(defaultFramebuffer.viewport().size()); // set up camera
 
-  time += 0.1;
+  /* TODO: Prepare your objects here and add them to the scene */
+  sphere = (new DrawableSphere(&_scene, &_drawables, 10, 10));
 
+  sphere->setVertices([settings](int i, DrawableSphere::VertexData &v) {
+    v.color = Color4{1.f, 0.f, 0.f, 1.f};
+    v.position *= 1.0 / 50.0f;
+  });
 
-  scene.drawAmplitude();
+  plane = (new DrawablePlane(&_scene, &_drawables, settings.n_x + 1,
+                             settings.n_y + 1));
 
-  // for(float x=-20.0;x<=20.0;x+=1.0){
-  //   Vec2 pos; pos << -50.0,x+0.1;
-  //   scene.drawTrajectory(pos,0.0);
-  // }
-  
-  scene.timeStep(1.0);
+  line = (new DrawableLine(&_scene, &_drawables, 100));
+}
+
+void PrimitivesExample::update() {
+
+  // times step simulation
+  float dt = _waveGrid.cflTimeStep();
+  _waveGrid.timeStep(dt, time);
+  time += dt;
+
+  // Set up wave grid visualization
+  plane->setVertices([this](int i, DrawableMesh::VertexData &v) {
+    Vec2 p  = worldToSim(v.position);
+    v.color = gridAmplitudeColor(p.x(), p.y(), _waveGrid);
+  });
+
+  // Set up trajectory
+  Vec4    pos4;
+  Vector3 dir   = _mousePlanePosition[0] - _mousePlanePosition[1];
+  Vec2    x0 = worldToSim(_mousePlanePosition[0]);
+  double  theta = atan2(dir.y(), dir.x());
+  double  k     = _waveGrid.idxToPos(0, 3);
+  pos4 << x0.x(), x0.y(), theta, k;
+
+  auto trajectory = _waveGrid.trajectory(pos4, settings.xmax-settings.xmin);
+  line->resize(trajectory.size());
+  line->setVertices([&](int i, DrawableLine::VertexData &v) {
+    auto pos4     = trajectory[i];
+    v.position    = simToWorld(trajectory[i].segment<2>(0));
+    v.position[2] = 0.01f;
+  });
+
+  // mouse location visualization
+  sphere->translate(
+      _mousePlanePosition[0] -
+      sphere->transformation().transformPoint(Vector3{0.f, 0.f, 0.f}));
+}
+
+void PrimitivesExample::drawEvent() {
+  defaultFramebuffer.clear(FramebufferClear::Color | FramebufferClear::Depth);
+
+  update();
+
+  _camera->draw(_drawables);
+
+  drawGui();
 
   swapBuffers();
+}
+
+void PrimitivesExample::drawGui() {
+  _gui.newFrame(windowSize(), defaultFramebuffer.viewport().size());
+
+  ImGui::ColorEdit3("Box color", &(_color[0]));
+
+  _gui.drawFrame();
 
   redraw();
 }
 
-} // namespace Examples
+void PrimitivesExample::viewportEvent(const Vector2i &size) {
+  defaultFramebuffer.setViewport({{}, size});
+
+  _camera->setProjectionMatrix(Matrix4::perspectiveProjection(
+      60.0_degf, Vector2{size}.aspectRatio(), 0.001f, 10000.0f));
+}
+
+void PrimitivesExample::keyPressEvent(KeyEvent &event) {
+  if (_gui.keyPressEvent(event)) {
+    redraw();
+    return;
+  }
+
+  if (event.key() == KeyEvent::Key::Esc) {
+    exit();
+  }
+}
+
+void PrimitivesExample::keyReleaseEvent(KeyEvent &event) {
+  if (_gui.keyReleaseEvent(event)) {
+    redraw();
+    return;
+  }
+}
+
+void PrimitivesExample::mousePressEvent(MouseEvent &event) {
+  if (_gui.mousePressEvent(event)) {
+    redraw();
+    return;
+  }
+
+  if (event.button() != MouseEvent::Button::Left)
+    return;
+
+  _previousMousePosition = event.position();
+  event.setAccepted();
+}
+
+void PrimitivesExample::mouseReleaseEvent(MouseEvent &event) {
+  if (_gui.mouseReleaseEvent(event)) {
+    redraw();
+    return;
+  }
+
+  event.setAccepted();
+  redraw();
+}
+
+void PrimitivesExample::mouseMoveEvent(MouseMoveEvent &event) {
+  if (_gui.mouseMoveEvent(event)) {
+    redraw();
+    return;
+  }
+
+  float lambda = 0.02;
+  _mousePlanePosition[1] =
+      lambda * _mousePlanePosition[0] + (1 - lambda) * _mousePlanePosition[1];
+  _mousePlanePosition[0] = mousePlanePosition(event.position());
+
+  const Vector2 delta = Vector2{event.position() - _previousMousePosition} /
+                        Vector2{defaultFramebuffer.viewport().size()};
+
+  if (event.buttons() & MouseMoveEvent::Button::Left)
+    mouseRotation(event, delta);
+
+  if (event.buttons() & MouseMoveEvent::Button::Right)
+    mouseZoom(event, delta);
+
+  if (event.buttons() & MouseMoveEvent::Button::Middle)
+    mousePan(event, delta);
+
+  _previousMousePosition = event.position();
+  event.setAccepted();
+  redraw();
+}
+
+void PrimitivesExample::mouseScrollEvent(MouseScrollEvent &event) {
+  if (_gui.mouseScrollEvent(event)) {
+    redraw();
+    return;
+  }
+}
+
+void PrimitivesExample::textInputEvent(TextInputEvent &event) {
+  if (_gui.textInputEvent(event)) {
+    redraw();
+    return;
+  }
+}
+
+void PrimitivesExample::mouseRotation(MouseMoveEvent const &event,
+                                      Vector2               delta) {
+
+  auto camPos =
+      _cameraObject->transformation().transformPoint(Vector3{0.0, 0.0, 0.0});
+
+  auto axis = cross(Vector3{0.f, 0.f, 1.f}, camPos.normalized()).normalized();
+
+  _cameraObject->rotate(Rad{-3.0f * delta.y()}, axis);
+  _cameraObject->rotateZ(Rad{-3.0f * delta.x()});
+}
+
+void PrimitivesExample::mouseZoom(MouseMoveEvent const &event, Vector2 delta) {
+  auto dir =
+      _cameraObject->transformation().transformVector(Vector3{0.0, 0.0, 1.0});
+
+  _cameraObject->translate(30.0f * delta.y() * dir);
+}
+
+void PrimitivesExample::mousePan(MouseMoveEvent const &event, Vector2 delta) {}
+
+Vector3 PrimitivesExample::mousePlanePosition(Vector2i mouseScreenPos) {
+  Vector2 mpos = 2.0f * (Vector2{mouseScreenPos} /
+                             Vector2{defaultFramebuffer.viewport().size()} -
+                         Vector2{.5f, 0.5f});
+  mpos[1] *= -1.f;
+
+  Vector3 mpos3 = {mpos[0], mpos[1], -1.f};
+  auto    trans =
+      _cameraObject->transformation() * _camera->projectionMatrix().inverted();
+  mpos3 = trans.transformPoint(mpos3);
+  Vector3 camOrg =
+      _cameraObject->transformation().transformPoint(Vector3{0.f, 0.f, 0.f});
+  Vector3 dir    = mpos3 - camOrg;
+  float   lambda = -camOrg.z() / dir.z();
+  mpos3          = camOrg + lambda * dir;
+
+  return mpos3;
+}
+
 } // namespace Magnum
 
-MAGNUM_APPLICATION_MAIN(Magnum::Examples::TriangleExample)
+MAGNUM_APPLICATION_MAIN(Magnum::PrimitivesExample)

@@ -53,6 +53,8 @@ public:
 
   Real amplitude(const Vec4 pos) const;
 
+  std::vector<Vec4> trajectory(Vec4 pos4, Real length);
+
 public:
   // private:
   void advectionStep(const double dt);
@@ -93,10 +95,13 @@ public:
 
   Real dispersionRelation(const Real k) const;
   Real groupSpeed(const Real k) const;
+  Real groupSpeed(const Vec4 pos4) const;
   Vec2 groupVelocity(const Real theta, const Real k) const;
+  Vec2 groupVelocity(const Vec4 pos4) const;
   Real defaultAmplitude(const int b_theta, const int c_k) const;
 
   int gridDim(const int dim) const;
+  Real dx() const;
 
 public:
   Grid m_amplitude, m_newAmplitude;

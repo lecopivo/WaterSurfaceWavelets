@@ -61,10 +61,10 @@ auto WaveGrid::interpolateAmplitude(Grid const &grid) const {
     return inDomain(nodePosition(a_x, a_y));
   };
 
-  auto interpolation =
-    //InterpolationDimWise(LinearInterpolation, LinearInterpolation,
-    InterpolationDimWise(LinearInterpolation, LinearInterpolation,
-			 LinearInterpolation, ConstantInterpolation);
+  auto interpolation = InterpolationDimWise(
+      // CubicInterpolation, CubicInterpolation,
+      LinearInterpolation, LinearInterpolation, LinearInterpolation,
+      ConstantInterpolation);
 
   auto igrid = DomainInterpolation(interpolation, domain)(extended_grid);
 
@@ -77,6 +77,30 @@ auto WaveGrid::interpolateAmplitude(Grid const &grid) const {
 Real WaveGrid::amplitude(const Vec4 pos) const {
   return interpolateAmplitude(m_amplitude)(pos);
 }
+
+std::vector<Vec4> WaveGrid::trajectory(Vec4 pos4, Real length){
+
+  std::vector<Vec4> trajectory;
+  Real dist = 0;
+
+  for(Real dist =0; dist<=length;){
+
+    trajectory.push_back(pos4);
+
+    Real cg = groupSpeed(pos4);
+    Vec2 vel = groupVelocity(pos4);
+    Real dt = dx()/cg;
+
+    pos4.segment<2>(0) += dt*vel;
+
+    pos4 = boundaryReflection(pos4);
+
+    dist += dx();
+  }
+  trajectory.push_back(pos4);
+  return trajectory;
+}
+
 
 void WaveGrid::advectionStep(const double dt) {
 
@@ -162,7 +186,7 @@ void WaveGrid::diffusionStep(const double dt) {
     for (int a_y = 0; a_y < gridDim(1); a_y++) {
 
       float ls = levelset(nodePosition(a_x, a_y));
-      
+
       for (int b_theta = 0; b_theta < gridDim(2); b_theta++) {
         for (int c_k = 0; c_k < gridDim(3); c_k++) {
 
@@ -267,11 +291,19 @@ Real WaveGrid::groupSpeed(const Real k) const {
   return 0.5 * sqrt(g / k);
 }
 
+Real WaveGrid::groupSpeed(const Vec4 pos4) const{
+  return groupSpeed(pos4[3]);
+}
+
 Vec2 WaveGrid::groupVelocity(const Real theta, const Real k) const {
   Real cg = groupSpeed(k);
   Vec2 vel;
   vel << cg * cos(theta), cg * sin(theta);
   return vel;
+}
+
+Vec2 WaveGrid::groupVelocity(const Vec4 pos4) const{
+  return groupVelocity(pos4[2],pos4[3]);
 }
 
 Real WaveGrid::defaultAmplitude(const int b_theta, const int c_k) const {
@@ -282,4 +314,8 @@ Real WaveGrid::defaultAmplitude(const int b_theta, const int c_k) const {
 
 int WaveGrid::gridDim(const int dim) const {
   return m_amplitude.dimension(dim);
+}
+
+Real WaveGrid::dx() const{
+  return std::min(m_dx[0],m_dx[1]);
 }
