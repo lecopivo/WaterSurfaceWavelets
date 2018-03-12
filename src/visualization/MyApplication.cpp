@@ -104,7 +104,7 @@ private:
   WaterSurfaceMesh *water_surface;
 
   // Stokes wave
-  float logdt      = -1.0;
+  float logdt      = -2.0;
   float amplitude  = 0.5;
   float time       = 0.0;
   float waveNumber = 1.0;
@@ -134,8 +134,10 @@ MyApplication::MyApplication(const Arguments &arguments)
   /* Set up object to draw */
   // plane = new DrawablePlane(&_scene, &_drawables, 200, 200);
   // plane->translate(Vector3{0, 0, -5});
-  water_surface = new WaterSurfaceMesh(&_scene, &_drawables, 200);
+  water_surface = new WaterSurfaceMesh(&_scene, &_drawables, 100);
 }
+
+int positive_modulo(int a, int n) { return ((a % n) + n) % n; }
 
 void MyApplication::drawEvent() {
   defaultFramebuffer.clear(FramebufferClear::Color | FramebufferClear::Depth);
@@ -144,14 +146,12 @@ void MyApplication::drawEvent() {
     v.position *= plane_size;
 
     float angle = atan2(v.position[1], v.position[0]);
-    float a     = DIR_NUM * (angle + pi) / (2 * pi);
-    int   ia    = (int)floor(a);
+    float a     = DIR_NUM * fmod(angle / (2 * pi) + 1.0, 1.0);
+    int   ia    = positive_modulo((int)floor(a), DIR_NUM);
     float wa    = a - ia;
 
-    if (ia == 0 || ia==1) {
-      v.amplitude[ia]                 = amplitude * (1 - wa);
-      v.amplitude[(ia + 1) % DIR_NUM] = amplitude * wa;
-    }
+    v.amplitude[(ia + DIR_NUM / 8) % DIR_NUM] += amplitude * (1 - wa);
+    v.amplitude[(ia + DIR_NUM / 8 + 1) % DIR_NUM] += amplitude * wa;
   });
 
   // switch (wave_type) {
@@ -333,7 +333,7 @@ void MyApplication::mouseRotation(MouseMoveEvent const &event, Vector2 delta) {
 }
 
 void MyApplication::mouseZoom(MouseMoveEvent const &event, Vector2 delta) {
-  _cameraParams.targetDistance -= 10.0f * delta.y();
+  _cameraParams.targetDistance *= 1.0 - 2.0*delta.y();
   _cameraObject->setTransformation(_cameraParams.getCameraTransformation());
 }
 

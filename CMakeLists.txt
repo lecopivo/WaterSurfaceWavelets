@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD 17)
 find_package(Eigen REQUIRED)
 include_directories(${EIGEN3_INCLUDE_DIR})
 include_directories(~/local/include/)
+link_directories(~/local/lib/)
 
 find_package(OpenMP)
 if (OPENMP_FOUND)

@@ -1,4 +1,4 @@
-#define DIR_NUM 32
+#define DIR_NUM 16
 
 #if (DIR_NUM%4)!=0 || DIR_NUM<=0
 

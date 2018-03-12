@@ -48,16 +48,16 @@ highp vec3 wave(highp vec3 p, highp float k, highp float t){
 
   highp vec3 result = vec3(0.0,0.0,0.0);
 
-  int N = 100;
+  int N = 32;
   highp float da = 1.0/N;
   highp float dx = DIR_NUM*tau/N;
-  int i = 0;
   for(float a = 0;a<1;a+=da){
+
     highp float angle = a*tau;
     highp vec2 kdir = vec2(cos(angle),sin(angle));
     highp float kx = k*dot(p.xy,kdir);
 
-    highp vec2 sw = dx*(sine_wave(Ampl(i++),k,kx,t));
+    highp vec2 sw = dx*(sine_wave(iAmpl(a),k,kx,t)+sine_wave(0.05*iAmpl(a),5*k,5*kx,t)+sine_wave(0.01*iAmpl(a),10*k,10*kx,t));
 
     result.xy -= kdir*sw.y;
     result.z += sw.x;
