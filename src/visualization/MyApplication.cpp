@@ -333,15 +333,22 @@ void MyApplication::mouseRotation(MouseMoveEvent const &event, Vector2 delta) {
 }
 
 void MyApplication::mouseZoom(MouseMoveEvent const &event, Vector2 delta) {
-  _cameraParams.targetDistance *= 1.0 - 2.0*delta.y();
+  _cameraParams.targetDistance *= 1.0 - 2.0 * delta.y();
   _cameraObject->setTransformation(_cameraParams.getCameraTransformation());
 }
 
 void MyApplication::mousePan(MouseMoveEvent const &event, Vector2 delta) {
 
-  auto trans = _cameraParams.getCameraTransformation();
-  _cameraParams.target +=
-      trans.transformVector(Vector3{-4.f * delta.x(), 4.f * delta.y(), 0.f});
+  Vector2i pmp = _previousMousePosition;
+  Vector2i mp  = event.position();
+
+  auto point_from_camera = [&](Vector2i screen_pos, float dist) -> Vector3 {
+    auto[dir, cam_pos] = cameraRayCast(screen_pos);
+    return cam_pos + dist * dir;
+  };
+
+  float dist = _cameraParams.targetDistance;
+  _cameraParams.target += point_from_camera(pmp, dist) - point_from_camera(mp, dist);;
   _cameraObject->setTransformation(_cameraParams.getCameraTransformation());
 }
 
@@ -354,7 +361,7 @@ MyApplication::cameraRayCast(Vector2i pixel) const {
   mouseScreenPos[1] *= -1.f;
 
   Vector3 dir = {mouseScreenPos[0], mouseScreenPos[1], -1.f};
-  auto    trans =
+  Matrix4    trans =
       _cameraObject->transformation() * _camera->projectionMatrix().inverted();
   dir = trans.transformVector(dir);
 
