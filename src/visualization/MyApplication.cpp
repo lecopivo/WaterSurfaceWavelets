@@ -171,29 +171,6 @@ void MyApplication::drawEvent() {
     }
   });
 
-  // switch (wave_type) {
-  // case 0:
-  //   // Stokes wave
-  //   plane->setVertices([&](int i, DrawableMesh::VertexData &v) {
-  //     v.position *= plane_size;
-  //     Vector2 pos_xy = v.position.xy();
-  //     v.position[2] =
-  //         stokes_wave(amplitude, kvec.length(), dot(kvec, pos_xy), time);
-  //   });
-  //   break;
-  // case 1:
-  //   // Gerstner wave
-  //   plane->setVertices([&](int i, DrawableMesh::VertexData &v) {
-  //     v.position *= plane_size;
-  //     Vector2 kdir   = kvec.normalized();
-  //     Vector2 pos_xy = v.position.xy();
-  //     auto[X, Z] =
-  //         gerstner_wave(amplitude, kvec.length(), dot(kvec, pos_xy), time);
-  //     v.position +=
-  //         X * Vector3{kdir.x(), kdir.y(), 0.f} + Z * Vector3{0.f, 0.f, 1.f};
-  //   });
-  //   break;
-  // }
 
   water_surface->_shader.setTime(time);
 
@@ -208,29 +185,6 @@ void MyApplication::drawEvent() {
 
 void MyApplication::drawGui() {
   _gui.newFrame(windowSize(), defaultFramebuffer.viewport().size());
-
-  // ImGui::ColorEdit3("Box color", &(_color[0]));
-
-  // if (ImGui::Button("Vertex color shader")) {
-  //   plane->_shader = Shaders::VertexColor3D{};
-  // }
-
-  // if (ImGui::Button("Phong shader")) {
-  //   plane->_shader = Shaders::Phong{};
-  //   auto &shader   = std::get<Shaders::Phong>(plane->_shader);
-  //   shader.setDiffuseColor(Color4{0.4f, 0.4f, 0.8f, 1.f})
-  //       .setAmbientColor(Color3{0.25f, 0.2f, 0.23f});
-  // }
-
-  // if (ImGui::Button("MeshVisualizer shader")) {
-  //   plane->_shader =
-  //       Shaders::MeshVisualizer{Shaders::MeshVisualizer::Flag::Wireframe};
-  //   auto &s = std::get<Shaders::MeshVisualizer>(plane->_shader);
-  //   s.setColor(Color4{0.3f, 0.3f, 0.3f, 1.f});
-  //   s.setLabel("mesh");
-  //   s.setWireframeColor(Color4{1.f, 1.f, 1.f, 1.f});
-  //   s.setWireframeWidth(1.f);
-  // }
 
   ImGui::SliderFloat("plane size", &plane_size, 1, 100);
   ImGui::SliderFloat("amplitude", &amplitude, 0, 2);
