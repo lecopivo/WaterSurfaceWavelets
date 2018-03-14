@@ -2,11 +2,14 @@
 
 #include <Magnum/Buffer.h>
 #include <Magnum/DefaultFramebuffer.h>
+#include <Magnum/Image.h>
+#include <Magnum/ImageView.h>
 #include <Magnum/Math/Color.h>
 #include <Magnum/Mesh.h>
 #include <Magnum/MeshTools/Compile.h>
 #include <Magnum/MeshTools/CompressIndices.h>
 #include <Magnum/MeshTools/Interleave.h>
+#include <Magnum/PixelFormat.h>
 #include <Magnum/Primitives/Cube.h>
 #include <Magnum/Primitives/Icosphere.h>
 #include <Magnum/Primitives/Plane.h>
@@ -22,7 +25,11 @@
 #include <Magnum/Shaders/MeshVisualizer.h>
 #include <Magnum/Shaders/Phong.h>
 #include <Magnum/Shaders/VertexColor.h>
+#include <Magnum/Texture.h>
+#include <Magnum/TextureFormat.h>
 #include <Magnum/Trade/MeshData3D.h>
+
+#include <iostream>
 
 #include "WaterSurfaceShader.h"
 
@@ -52,8 +59,21 @@ public:
     bindBuffers(newData);
   }
 
+  template <class Fun> void setHeightField(Fun fun) {
+
+    float dx = 1.0f / _heightTextureSize;
+
+    for (int i = 0; i < _heightTextureSize; i++) {
+      float x = (i + 0.5f) * dx;
+      fun(x, _heightData[i]);
+    }
+
+    bindTexture();
+  }
+
 protected:
   void bindBuffers(std::vector<VertexData> const &data);
+  void bindTexture();
 
 private:
   void draw(const Matrix4 &       transformationMatrix,
@@ -67,6 +87,10 @@ public:
 
   std::vector<VertexData>  _data;
   std::vector<UnsignedInt> _indices;
+
+  const int            _heightTextureSize = 4096;
+  std::vector<Vector4> _heightData{size_t{_heightTextureSize}};
+  Texture1D            _heightTexture;
 };
 
 } // namespace Magnum

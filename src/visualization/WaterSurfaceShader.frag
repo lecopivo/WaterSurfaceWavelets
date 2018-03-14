@@ -14,10 +14,9 @@ layout(location = 0) out lowp vec4 fragmentColor;
 void main() {
   highp vec3 p = pos;
 
-  highp vec3 w = wave(p,waveNumber,time);
-  p.z = w.z;
-  highp vec3 normal = normalMatrix*normalize(vec3(w.x,w.y,1));
-  //highp vec3 normal = transformedNormal;
+  //highp vec3 w = wave(p,waveNumber,time);
+  //highp vec3 normal = normalMatrix*normalize(vec3(w.x,w.y,1));
+  highp vec3 normal = normalMatrix*waveNormal(p,waveNumber);
 
   //////////////////////////////////////
   lowp vec4 finalAmbientColor = ambientColor;

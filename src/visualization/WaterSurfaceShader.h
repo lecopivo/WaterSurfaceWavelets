@@ -5,6 +5,7 @@
 #include "Magnum/Math/Matrix4.h"
 #include "Magnum/Shaders/Generic.h"
 #include "Magnum/Shaders/visibility.h"
+#include "Magnum/Texture.h"
 
 #include "DirectionNumber.h"
 
@@ -59,12 +60,17 @@ public:
     return *this;
   }
 
-
+  WaterSurfaceShader &bindTexture(Texture1D &texture) {
+    texture.bind(TextureLayer);
+    return *this;
+  }
 
 private:
+  enum : Int { TextureLayer = 0 };
+
   Int _lightPositionUniform, _ambientColorUniform, _colorUniform,
       _transformationMatrixUniform, _normalMatrixUniform,
-    _projectionMatrixUniform,_timeUniform,_waveNumberUniform;
+      _projectionMatrixUniform, _timeUniform, _waveNumberUniform;
 };
 
 } // namespace Shaders

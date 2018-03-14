@@ -105,11 +105,12 @@ private:
 
   // Stokes wave
   float logdt      = -2.0;
-  float amplitude  = 0.16;
+  float amplitude  = 0.5;
   float time       = 0.0;
   float waveNumber = 1.0;
   float plane_size = 40.0;
   int   wave_type  = 1; // { STOKES = 0, GERSTNER = 1 }
+  int wave_offset = DIR_NUM/4-1;
 };
 
 MyApplication::MyApplication(const Arguments &arguments)
@@ -121,7 +122,7 @@ MyApplication::MyApplication(const Arguments &arguments)
                   Sdl2Application::Configuration::WindowFlag::Resizable)} {
   /* Configure OpenGL state */
   Renderer::enable(Renderer::Feature::DepthTest);
-  Renderer::enable(Renderer::Feature::FaceCulling);
+  // Renderer::enable(Renderer::Feature::FaceCulling);
 
   Shaders::WaterSurfaceShader sh;
 
@@ -150,8 +151,24 @@ void MyApplication::drawEvent() {
     int   ia    = positive_modulo((int)floor(a), DIR_NUM);
     float wa    = a - ia;
 
-    v.amplitude[(ia + DIR_NUM / 8) % DIR_NUM] += amplitude * (1 - wa);
-    v.amplitude[(ia + DIR_NUM / 8 + 1) % DIR_NUM] += amplitude * wa;
+    v.amplitude[(ia + wave_offset) % DIR_NUM] += amplitude * (1 - wa);
+    v.amplitude[(ia + wave_offset + 1) % DIR_NUM] += amplitude * wa;
+  });
+
+  water_surface->setHeightField([&](float x, Vector4 &val) {
+
+    val[0] = 0;
+    val[1] = 0;
+    val[2] = 0;
+    val[3] = 0;
+    for (int i = 0; i <= 12; i++) {
+      auto[X, Y,DX,DY] = gerstner_wave(amplitude * pow(2,-i), pow(2,i)*waveNumber, pow(2,i) * 2 * pi * x, time);
+
+      val[0] += X;
+      val[1] += Y;
+      val[2] += DX;
+      val[3] += DY;
+    }
   });
 
   // switch (wave_type) {
@@ -223,6 +240,7 @@ void MyApplication::drawGui() {
   ImGui::RadioButton("Stokes", &wave_type, 0);
   ImGui::SameLine();
   ImGui::RadioButton("Gerstner", &wave_type, 1);
+  ImGui::SliderInt("direction", &wave_offset, 0, DIR_NUM-1);
 
   _gui.drawFrame();
 
@@ -348,7 +366,8 @@ void MyApplication::mousePan(MouseMoveEvent const &event, Vector2 delta) {
   };
 
   float dist = _cameraParams.targetDistance;
-  _cameraParams.target += point_from_camera(pmp, dist) - point_from_camera(mp, dist);;
+  _cameraParams.target +=
+      point_from_camera(pmp, dist) - point_from_camera(mp, dist);
   _cameraObject->setTransformation(_cameraParams.getCameraTransformation());
 }
 
@@ -361,7 +380,7 @@ MyApplication::cameraRayCast(Vector2i pixel) const {
   mouseScreenPos[1] *= -1.f;
 
   Vector3 dir = {mouseScreenPos[0], mouseScreenPos[1], -1.f};
-  Matrix4    trans =
+  Matrix4 trans =
       _cameraObject->transformation() * _camera->projectionMatrix().inverted();
   dir = trans.transformVector(dir);
 

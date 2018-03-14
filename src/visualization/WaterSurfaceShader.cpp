@@ -38,6 +38,8 @@ WaterSurfaceShader::WaterSurfaceShader() {
   _normalMatrixUniform         = uniformLocation("normalMatrix");
   _timeUniform                 = uniformLocation("time");
   _waveNumberUniform           = uniformLocation("waveNumber");
+
+  setUniform(uniformLocation("textureData"), TextureLayer);
 }
 
 } // namespace Shaders

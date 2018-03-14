@@ -75,16 +75,29 @@ void WaterSurfaceMesh::bindBuffers(std::vector<VertexData> const &data) {
   _mesh.setCount(_indices.size());
 }
 
+void WaterSurfaceMesh::bindTexture() {
+  Containers::ArrayView<const void> data(_heightData.data(),
+                                         _heightData.size() * sizeof(Vector4));
+  ImageView1D image(PixelFormat::RGBA, PixelType::Float, _heightTextureSize, data);
+
+  _heightTexture.setWrapping(Sampler::Wrapping::Repeat)
+      .setMagnificationFilter(Sampler::Filter::Linear)
+      .setMinificationFilter(Sampler::Filter::Linear)
+      .setStorage(1, TextureFormat::RGBA32F, _heightTextureSize)
+      .setSubImage(0, {}, image);
+}
+
 void WaterSurfaceMesh::draw(const Matrix4 &       transformationMatrix,
                             SceneGraph::Camera3D &camera) {
 
   _shader
       .setLightPosition(
           camera.cameraMatrix().transformPoint({15.0f, 15.0f, 30.0f}))
-    //    .setLightPosition(Vector3{0.0,5.0,5.0})
+      //    .setLightPosition(Vector3{0.0,5.0,5.0})
       .setTransformationMatrix(transformationMatrix)
       .setNormalMatrix(transformationMatrix.rotation())
-      .setProjectionMatrix(camera.projectionMatrix());
+      .setProjectionMatrix(camera.projectionMatrix())
+      .bindTexture(_heightTexture);
   _mesh.draw(_shader);
 }
 

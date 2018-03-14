@@ -16,9 +16,12 @@ out highp vec4 ampl[NUM];
 void main() {
   highp vec3 p = position.xyz/position.w;
 
-  highp vec3 w = wave(p,waveNumber,time);
-  p.z = w.z;
-  highp vec3 normal = normalize(vec3(w.x,w.y,1));
+  // highp vec3 w = wave(p,waveNumber,time);
+  // p.z = w.z;
+  // highp vec3 normal = normalize(vec3(w.x,w.y,1));
+
+   p += wavePosition(p,waveNumber);
+   vec3 normal = vec3(0.0,0.0,1.0);
   
   /* Transformed vertex position */
   highp vec4 transformedPosition4 = transformationMatrix*vec4(p.x,p.y,p.z,1);
