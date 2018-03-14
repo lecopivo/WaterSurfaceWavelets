@@ -32,11 +32,28 @@
 #include "WaterSurfaceShader.h"
 #include "drawables/VisualizationPrimitives.h"
 
+#include "../WaveGrid.hpp"
+
 using namespace Magnum;
 using namespace Magnum::Math::Literals;
 
 using Object3D = SceneGraph::Object<SceneGraph::MatrixTransformation3D>;
 using Scene3D  = SceneGraph::Scene<SceneGraph::MatrixTransformation3D>;
+
+auto settings = []() {
+  WaveGrid::Settings s;
+  s.xmin = -50.0;
+  s.xmax = +50.0;
+  s.ymin = -50.0;
+  s.ymax = +50.0;
+
+  s.n_x     = 200;
+  s.n_y     = 200;
+  s.n_theta = DIR_NUM;
+  s.n_k     = 1;
+
+  return s;
+}();
 
 constexpr float pi = 3.14159265359f;
 
@@ -55,6 +72,13 @@ struct CameraParameters {
     return trans;
   }
 };
+
+template <int N, typename T> void printv(Magnum::Math::Vector<N, T> v) {
+  for (int i = 0; i < N; i++) {
+    std::cout << v[i] << " ";
+  }
+  std::cout << std::endl;
+}
 
 class MyApplication : public Platform::Application {
 public:
@@ -85,6 +109,7 @@ private:
    * \return direction vector and camera position(in that order)
    */
   std::tuple<Vector3, Vector3> cameraRayCast(Vector2i pixel) const;
+  std::tuple<Vector3, Vector3> cameraRayCast(Vector2 mouseScreenPos) const;
 
   Scene3D                     _scene;
   Object3D *                  _cameraObject;
@@ -104,27 +129,29 @@ private:
   WaterSurfaceMesh *water_surface;
 
   // Stokes wave
-  float logdt      = -2.0;
-  float amplitude  = 0.5;
-  float time       = 0.0;
-  float waveNumber = 1.0;
-  float plane_size = 40.0;
-  int   wave_type  = 1; // { STOKES = 0, GERSTNER = 1 }
-  int wave_offset = DIR_NUM/4-1;
+  float logdt              = -2.0;
+  float amplitude          = 0.5;
+  float time               = 0.0;
+  float waveNumber         = 1.0;
+  float plane_size         = 40.0;
+  int   wave_type          = 1; // { STOKES = 0, GERSTNER = 1 }
+  int   wave_offset        = DIR_NUM / 4 - 1;
+  int   gridResolution     = 200;
+  bool  update_screen_grid = true;
+
+  WaveGrid _waveGrid;
 };
 
 MyApplication::MyApplication(const Arguments &arguments)
-    : Platform::Application{
-          arguments,
-          Configuration{}
-              .setTitle("Magnum object picking example")
-              .setWindowFlags(
-                  Sdl2Application::Configuration::WindowFlag::Resizable)} {
+    : Platform::Application{arguments,
+                            Configuration{}
+                                .setTitle("Magnum object picking example")
+                                .setWindowFlags(Sdl2Application::Configuration::
+                                                    WindowFlag::Resizable)},
+      _waveGrid(settings) {
   /* Configure OpenGL state */
   Renderer::enable(Renderer::Feature::DepthTest);
-  // Renderer::enable(Renderer::Feature::FaceCulling);
-
-  Shaders::WaterSurfaceShader sh;
+  Renderer::enable(Renderer::Feature::FaceCulling);
 
   /* Configure camera */
   _cameraObject = new Object3D{&_scene};
@@ -133,27 +160,63 @@ MyApplication::MyApplication(const Arguments &arguments)
   viewportEvent(defaultFramebuffer.viewport().size()); // set up camera
 
   /* Set up object to draw */
-  // plane = new DrawablePlane(&_scene, &_drawables, 200, 200);
-  // plane->translate(Vector3{0, 0, -5});
-  water_surface = new WaterSurfaceMesh(&_scene, &_drawables, 100);
-}
+  sphere        = new DrawableSphere(&_scene, &_drawables, 10, 10);
+  plane         = new DrawablePlane(&_scene, &_drawables, 200, 200);
+  water_surface = new WaterSurfaceMesh(&_scene, &_drawables, gridResolution);
 
-int positive_modulo(int a, int n) { return ((a % n) + n) % n; }
+  plane->setVertices([&](int i, DrawablePlane::VertexData &v) {
+    v.position *= 50;
+    Vec2 p;
+    p << v.position[0], v.position[1];
+    v.position[2] = -_waveGrid.levelset(p);
+  });
+  std::get<Shaders::Phong>(plane->_shader)
+      .setDiffuseColor(Color4{0.4, 0.4, 0.4, 1.0})
+      .setAmbientColor(Color3{0.25f, 0.2f, 0.23f})
+      .setShininess(10)
+      .setSpecularColor(Color4{0.2, 0.2, 0.2, 1.0});
+
+  std::get<Shaders::Phong>(sphere->_shader)
+      .setDiffuseColor(Color4{0.8, 0.2, 0.2, 1.0})
+      .setAmbientColor(Color3{0.8f, 0.2f, 0.23f})
+      .setSpecularColor(Color4{0.2, 0.2, 0.2, 1.0});
+}
 
 void MyApplication::drawEvent() {
   defaultFramebuffer.clear(FramebufferClear::Color | FramebufferClear::Depth);
 
-  water_surface->setVertices([&](int i, WaterSurfaceMesh::VertexData &v) {
-    v.position *= plane_size;
+  if (update_screen_grid) {
+    water_surface->setVertices([&](int i, WaterSurfaceMesh::VertexData &v) {
 
-    float angle = atan2(v.position[1], v.position[0]);
-    float a     = DIR_NUM * fmod(angle / (2 * pi) + 1.0, 1.0);
-    int   ia    = positive_modulo((int)floor(a), DIR_NUM);
-    float wa    = a - ia;
+      int     ix        = i / (gridResolution + 1);
+      int     iy        = i % (gridResolution + 1);
+      Vector2 screenPos = Vector2{(2.0f * ix) / gridResolution - 1.0,
+                                  (2.0f * iy) / gridResolution - 1.0};
 
-    v.amplitude[(ia + wave_offset) % DIR_NUM] += amplitude * (1 - wa);
-    v.amplitude[(ia + wave_offset + 1) % DIR_NUM] += amplitude * wa;
-  });
+      auto[dir, camPos] = cameraRayCast(screenPos);
+      dir               = dir.normalized();
+      float t           = -camPos.z() / dir.z();
+      t                 = t < 0 ? 1000 : t;
+      v.position        = camPos + t * dir;
+      v.position.z()    = 0;
+
+      for (int a = 0; a < DIR_NUM; a++) {
+        float angle = (2 * pi * a) / DIR_NUM;
+        Vec4  pos4;
+        pos4 << v.position.x(), v.position.y(), angle, 10.0;
+        v.amplitude[a] = amplitude * _waveGrid.amplitude(pos4);
+      }
+      // float angle = atan2(v.position[1], v.position[0]);
+      // float a     = DIR_NUM * fmod(angle / (2 * pi) + 1.0, 1.0);
+      // int   ia    = positive_modulo((int)floor(a), DIR_NUM);
+      // float wa    = a - ia;
+
+      // v.amplitude[(ia + wave_offset) % DIR_NUM] += amplitude * (1 - wa);
+      // v.amplitude[(ia + wave_offset + 1) % DIR_NUM] += amplitude * wa;
+    });
+  }
+
+  _waveGrid.timeStep(_waveGrid.cflTimeStep() * 0.5f, time);
 
   water_surface->setHeightField([&](float x, Vector4 &val) {
 
@@ -162,7 +225,9 @@ void MyApplication::drawEvent() {
     val[2] = 0;
     val[3] = 0;
     for (int i = 0; i <= 12; i++) {
-      auto[X, Y,DX,DY] = gerstner_wave(amplitude * pow(2,-i), pow(2,i)*waveNumber, pow(2,i) * 2 * pi * x, time);
+      auto[X, Y, DX, DY] =
+          gerstner_wave(amplitude * pow(2, -i), pow(2, i) * waveNumber,
+                        pow(2, i) * 2 * pi * x, time);
 
       val[0] += X;
       val[1] += Y;
@@ -170,7 +235,6 @@ void MyApplication::drawEvent() {
       val[3] += DY;
     }
   });
-
 
   water_surface->_shader.setTime(time);
 
@@ -194,7 +258,8 @@ void MyApplication::drawGui() {
   ImGui::RadioButton("Stokes", &wave_type, 0);
   ImGui::SameLine();
   ImGui::RadioButton("Gerstner", &wave_type, 1);
-  ImGui::SliderInt("direction", &wave_offset, 0, DIR_NUM-1);
+  ImGui::SliderInt("direction", &wave_offset, 0, DIR_NUM - 1);
+  ImGui::Checkbox("update screen grid", &update_screen_grid);
 
   _gui.drawFrame();
 
@@ -205,7 +270,7 @@ void MyApplication::viewportEvent(const Vector2i &size) {
   defaultFramebuffer.setViewport({{}, size});
 
   _camera->setProjectionMatrix(Matrix4::perspectiveProjection(
-      60.0_degf, Vector2{size}.aspectRatio(), 0.001f, 10000.0f));
+      60.0_degf, Vector2{size}.aspectRatio(), 0.1f, 1000.0f));
 }
 
 void MyApplication::keyPressEvent(KeyEvent &event) {
@@ -260,6 +325,15 @@ void MyApplication::mouseMoveEvent(MouseMoveEvent &event) {
     redraw();
     return;
   }
+
+  auto[dir, camPos] = cameraRayCast(event.position());
+  double  t         = -camPos.z() / dir.z();
+  Vector3 spherePos = sphere->transformation().transformPoint(Vector3{0, 0, 0});
+  Vector3 sphereNewPos = (camPos + t * dir);
+  sphere->translate(sphereNewPos - spherePos);
+  Vec2 pos;
+  pos << sphereNewPos.x(), sphereNewPos.y();
+  _waveGrid.addPointDisturbance(pos, 0.1);
 
   const Vector2 delta = Vector2{event.position() - _previousMousePosition} /
                         Vector2{defaultFramebuffer.viewport().size()};
@@ -328,19 +402,28 @@ void MyApplication::mousePan(MouseMoveEvent const &event, Vector2 delta) {
 std::tuple<Vector3, Vector3>
 MyApplication::cameraRayCast(Vector2i pixel) const {
 
-  Vector2 mouseScreenPos =
+  Vector2 screenPos =
       2.0f * (Vector2{pixel} / Vector2{defaultFramebuffer.viewport().size()} -
               Vector2{.5f, 0.5f});
-  mouseScreenPos[1] *= -1.f;
+  screenPos[1] *= -1.f;
 
-  Vector3 dir = {mouseScreenPos[0], mouseScreenPos[1], -1.f};
-  Matrix4 trans =
-      _cameraObject->transformation() * _camera->projectionMatrix().inverted();
-  dir = trans.transformVector(dir);
+  return cameraRayCast(screenPos);
+}
+
+std::tuple<Vector3, Vector3>
+MyApplication::cameraRayCast(Vector2 screenPos) const {
+  Matrix4 camTrans = _cameraObject->transformation();
+  Matrix4 camProj  = _camera->projectionMatrix();
+  Matrix4 trans    = camTrans * camProj.inverted();
+
+  Vector3 point = Vector3{screenPos[0], screenPos[1], 0} +
+                  camProj.transformPoint(Vector3{0, 0, -1});
+
+  point = trans.transformPoint(point);
 
   Vector3 camPos =
       _cameraObject->transformation().transformPoint(Vector3{0.f, 0.f, 0.f});
-
+  Vector3 dir = (point - camPos).normalized();
   return {dir, camPos};
 }
 

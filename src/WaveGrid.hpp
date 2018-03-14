@@ -55,6 +55,7 @@ public:
 
   std::vector<Vec4> trajectory(Vec4 pos4, Real length);
 
+  void addPointDisturbance(const Vec2 pos,const double val);
 public:
   // private:
   void advectionStep(const double dt);

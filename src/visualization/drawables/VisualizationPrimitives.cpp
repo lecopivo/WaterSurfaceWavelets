@@ -36,7 +36,8 @@ void DrawableMesh::draw(const Matrix4 &       transformationMatrix,
   if (std::holds_alternative<Shaders::Phong>(_shader)) {
     auto &s = std::get<Shaders::Phong>(_shader);
 
-    s.setLightPosition(camera.cameraMatrix().transformPoint({5.0f, 5.0f, 7.0f}))
+    s.setLightPosition(
+         camera.cameraMatrix().transformPoint({15.0f, 15.0f, 30.0f}))
         .setTransformationMatrix(transformationMatrix)
         .setNormalMatrix(transformationMatrix.rotation())
         .setProjectionMatrix(camera.projectionMatrix());

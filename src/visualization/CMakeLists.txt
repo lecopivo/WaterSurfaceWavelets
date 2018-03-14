@@ -18,6 +18,7 @@ corrade_add_resource(WaterSurfaceShaders_RCS resources.conf)
 add_executable(MyApplication MyApplication.cpp WaterSurfaceShader.cpp WaterSurfaceMesh.cpp ${WaterSurfaceShaders_RCS})
 
 target_link_libraries(MyApplication
+  WaveGrid
   drawables
   Magnum::MeshTools
   Magnum::Primitives

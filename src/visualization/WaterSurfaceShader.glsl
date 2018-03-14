@@ -25,15 +25,14 @@ float Ampl(int i){
 }
 #endif
 
+const float tau = 6.28318530718;
 
-highp float iAmpl(highp float a/*range [0,1]*/){
-  a *= DIR_NUM;
-  highp int ia = int(floor(a));
-  highp float w = a-ia;
+float iAmpl( float angle/*range [0,2pi]*/){
+  float a = DIR_NUM*angle/tau;
+  int ia = int(floor(a));
+  float w = a-ia;
   return (1-w)*Ampl(ia)+w*Ampl((ia+1)%DIR_NUM);
 }
-
-const highp float tau = 6.28318530718;
 
 vec3 wavePosition(vec3 p, float k){
 
@@ -51,7 +50,7 @@ vec3 wavePosition(vec3 p, float k){
     float kx = k*dot(p.xy,kdir)+tau*sin(54*a);
     float w = kx/lambda;
 
-    vec4 tt = dx*iAmpl(a)*texture(textureData,w);
+    vec4 tt = dx*iAmpl(angle)*texture(textureData,w);
 
     result.xy += kdir*tt.x;
     result.z += tt.y;
@@ -77,7 +76,7 @@ vec3 waveNormal(vec3 p, float k){
     float kx = k*dot(p.xy,kdir)+tau*sin(54*a);
     float w = kx/lambda;
 
-    vec4 tt = dx*iAmpl(a)*texture(textureData,w);
+    vec4 tt = dx*iAmpl(angle)*texture(textureData,w);
 
     tx.xz += kdir.x*tt.zw;
     ty.yz += kdir.y*tt.zw;

@@ -51,12 +51,13 @@ public:
 
 public:
   template <class Fun> void setVertices(Fun fun) {
-    std::vector<VertexData> newData = _data;
+    //std::vector<VertexData> newData = _data;
 
-    for (size_t i = 0; i < newData.size(); i++) {
-      fun(i, newData[i]);
+#pragma omp parallel for 
+    for (size_t i = 0; i < _data.size(); i++) {
+      fun(i, _data[i]);
     }
-    bindBuffers(newData);
+    bindBuffers(_data);
   }
 
   template <class Fun> void setHeightField(Fun fun) {

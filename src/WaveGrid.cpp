@@ -101,6 +101,18 @@ std::vector<Vec4> WaveGrid::trajectory(Vec4 pos4, Real length){
   return trajectory;
 }
 
+void WaveGrid::addPointDisturbance(const Vec2 pos,const double val){
+  int ix = posToIdx(pos[0],0);
+  int iy = posToIdx(pos[1],1);
+  if(ix>=0 && ix < gridDim(0) && iy>=0 && iy <gridDim(1)){
+
+    for(int b =0;b<gridDim(2);b++){
+      m_amplitude(ix,iy,b,0) += val;
+    }
+  }
+
+}
+
 
 void WaveGrid::advectionStep(const double dt) {
 
