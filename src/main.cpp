@@ -13,7 +13,7 @@ int main(){
   s.n_theta = 8;
   s.n_k = 1;
 
-  s.spectrumType = WaveGrid::Settings::HAHA_SPECTRUM;
+  s.spectrumType = WaveGrid::Settings::PiersonMoskowitz;
 
   WaveGrid grid(s);
 

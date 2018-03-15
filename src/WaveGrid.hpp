@@ -10,52 +10,87 @@
 #include <Interpolation/DomainInterpolation.h>
 #include <Interpolation/Interpolation.h>
 
+constexpr int pos_modulo(int n, int d);
+
 using Real = double;
 
-using Vec2 = Eigen::Matrix<Real, 2, 1>;
-using Vec4 = Eigen::Matrix<Real, 4, 1>;
+class BoundaryLevelSet {
+public:
+  // evaluate Levelset 
+  Real operator()(Real x, Real y) { return 0; }
 
-using PositionIdx = std::array<int, 2>;
-using WaveVectorIdx = std::array<int, 2>;
-using Idx = std::array<int, 4>;
+  
+};
 
-using Grid = Eigen::Tensor<Real, 4>;
-
-constexpr int pos_modulo(int n, int d);
+/*! \typedef Vec4 Location in 4D grid!
+ *
+ * \brief Location (x,y,theta,zeta) in 4D grid.
+ *
+ *  The location is determined by four numbers: x,y,theta,zeta
+ *  $x \in [-size,size]$ - the first spatial coordinate
+ *  $y \in [-size,size]$ - the second spatial coordinate
+ *  $theta \in [0,2 \pi)$  - direction of wavevector, theta==0 corresponds to
+ * wavevector in +x direction
+ *  $zeta \in [\log_2(minWavelength),\log_2(maxWavelength)]$ - zeta is log2 of
+ * wavelength
+ *
+ *  The reason behind using zeta instead of wavenumber or wavelength is the
+ * nature of wavelengths and it has better discretization properties. We want
+ * to have a nice cascade of waves with exponentially increasing wavelengths.
+ */
 
 class WaveGrid {
 public:
+  using Vec2 = std::array<Real, 2>;
+  using Vec3 = std::array<Real, 3>;
+  using Vec4 = std::array<Real, 4>;
+
+  using Idx = std::array<int, 4>;
+
+  using Grid = Eigen::Tensor<Real, 4>;
+
+public:
   struct Settings {
     // domain size
-    Real xmin;
-    Real xmax;
-    Real ymin;
-    Real ymax;
+    Real size;
+    Real max_wavelength;
+    Real min_wavelength;
 
     // discretization nodes
-    int n_x;
-    int n_y;
-    int n_theta;
-    int n_k;
+    int n_x     = 100;
+    int n_theta = 16;
+    int n_zeta  = 1;
+
+    // Additional settings
+    Real initial_time = 0;
 
     // spectrum type
-    enum { HAHA_SPECTRUM } spectrumType;
+    enum SpectrumType {
+      LinearBasis,
+      PiersonMoskowitz
+    } spectrumType = PiersonMoskowitz;
   };
 
 public:
   WaveGrid(Settings s);
 
-  void timeStep(const double dt, const double t);
+  void timeStep(const double dt);
 
-  Real waterHeight(const Vec2 pos);
+  /** \brief Position and normal of water surface
+   *
+   * For initial position `pos` you get
+   * \param pos Position where you
+   */
+  std::pair<Vec3, Vec3> waterSurface(Real x, Real y) const;
 
   Real cflTimeStep() const;
 
-  Real amplitude(const Vec4 pos) const;
+  Real amplitude(Real x, Real y, Real theta, Real zeta) const;
 
   std::vector<Vec4> trajectory(Vec4 pos4, Real length);
 
-  void addPointDisturbance(const Vec2 pos,const double val);
+  void addPointDisturbance(const Vec2 pos, const double val);
+
 public:
   // private:
   void advectionStep(const double dt);
@@ -101,16 +136,20 @@ public:
   Vec2 groupVelocity(const Vec4 pos4) const;
   Real defaultAmplitude(const int b_theta, const int c_k) const;
 
-  int gridDim(const int dim) const;
+  int  gridDim(const int dim) const;
   Real dx() const;
 
 public:
   Grid m_amplitude, m_newAmplitude;
 
+  std::vector<std::vector<Vec4>> m_profileBuffers;
+
   std::array<Real, 4> m_xmin;
   std::array<Real, 4> m_xmax;
   std::array<Real, 4> m_dx;
   std::array<Real, 4> m_idx;
+
+  BoundaryLevelset m_boundary;
 
   // boundary info
   Vec2 islandCenter;
