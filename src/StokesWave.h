@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include <array>
 #include <cmath>
 
@@ -11,7 +10,7 @@ double sine_wave(double a, double k, double kx, double t) {
   double omega = sqrt(g / k);
   double theta = kx - omega * t;
   double nu    = a * cos(theta);
-  
+
   return nu;
 }
 
@@ -27,8 +26,7 @@ double stokes_wave(double a, double k, double kx, double t) {
   return nu;
 }
 
-std::array<double,4> gerstner_wave(double a, double k, double kx,
-                                        double t) {
+std::array<double, 4> gerstner_wave(double a, double k, double kx, double t) {
 
   constexpr double g = 9.81;
 
@@ -36,8 +34,8 @@ std::array<double,4> gerstner_wave(double a, double k, double kx,
   double theta = kx - omega * t;
   double X     = a / k * sin(theta);
   double Y     = -a / k * cos(theta);
-  double DX    =  a * cos(theta);
-  double DY    =  a * sin(theta);
-  
+  double DX    = a * cos(theta);
+  double DY    = a * sin(theta);
+
   return {X, Y, DX, DY};
 }

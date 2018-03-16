@@ -25,7 +25,7 @@
 
 #include <iostream>
 
-#include "../WaveGrid.hpp"
+#include "../WaveGrid.h"
 #include "DrawingPrimitives.hpp"
 
 namespace Magnum {

@@ -1,64 +1,136 @@
-#include "WaveGrid.hpp"
+#include "WaveGrid.h"
+#include "math/ArrayAlgebra.h"
+#include "math/Integration.h"
+
+#include "math/interpolation/DomainInterpolation.h"
+#include "math/interpolation/Interpolation.h"
 
 #include <algorithm>
 
+namespace WaterWavelets {
+
 constexpr int pos_modulo(int n, int d) { return (n % d + d) % d; }
+
+constexpr double tau = 6.28318530718; // https://tauday.com/tau-manifesto
+
+auto WaveGrid::profileBuffer(int izeta) const {
+  assert(izeta >= 0 && izeta < gridDim(3));
+
+  const int N = m_profileBuffers[izeta].size();
+
+  // Guard from acessing outside of the buffer by wrapping
+  auto extended_buffer = [=](int i) -> Vec4 {
+    return m_profileBuffers[izeta][pos_modulo(i, N)];
+  };
+
+  // Preform linear interpolation
+  auto interpolated_buffer = LinearInterpolation(extended_buffer);
+
+  // the maximum wavelength represented by grid value at `izeta`
+  Real buffer_period = bufferPeriod(izeta);
+
+  return [=](Real kdir_x) mutable -> Vec4 {
+    return interpolated_buffer(N * kdir_x / buffer_period);
+  };
+}
 
 WaveGrid::WaveGrid(Settings s) {
 
-  m_amplitude.resize(s.n_x, s.n_y, s.n_theta, s.n_k);
-  m_newAmplitude.resize(s.n_x, s.n_y, s.n_theta, s.n_k);
+  m_amplitude.resize(s.n_x, s.n_x, s.n_theta, s.n_zeta);
+  m_newAmplitude.resize(s.n_x, s.n_x, s.n_theta, s.n_zeta);
 
-  Real kmin = 8.0;
-  Real kmax = 16.0;
+  Real zeta_min = log2(s.min_wavelength);
+  Real zeta_max = log2(s.max_wavelength);
 
-  m_xmin = {s.xmin, s.ymin, 0.0, kmin};
-  m_xmax = {s.xmax, s.ymax, 2.0 * M_PI, kmax};
+  m_xmin = {-s.size, -s.size, 0.0, zeta_min};
+  m_xmax = {s.size, s.size, tau, zeta_max};
 
   for (int i = 0; i < 4; i++) {
-    m_dx[i] = (m_xmax[i] - m_xmin[i]) / m_amplitude.dimension(i);
+    m_dx[i]  = (m_xmax[i] - m_xmin[i]) / m_amplitude.dimension(i);
     m_idx[i] = 1.0 / m_dx[i];
   }
 
-  // boundary info
-  islandCenter << 0.5 * (m_xmin[0] + m_xmax[0]), 0.5 * (m_xmin[1] + m_xmax[1]);
-  islandRadius = 0.1 * std::min(m_xmax[0] - m_xmin[0], m_xmax[1] - m_xmin[1]);
+  m_time = s.initial_time;
+
+  m_profileBuffers.resize(s.n_zeta);
+  for (auto &buffer : m_profileBuffers)
+    buffer.resize(4096);
 }
 
-void WaveGrid::timeStep(const double dt, const double t) {
+void WaveGrid::timeStep(const double dt) {
   advectionStep(dt);
   diffusionStep(dt);
-  precompute1DBuffers(t);
+  precomputeProfileBuffers(m_time);
+  m_time += dt;
 }
 
 Real WaveGrid::cflTimeStep() const {
-  return std::min(m_dx[0], m_dx[1]) / groupSpeed(waveNumber(0));
+  return std::min(m_dx[X], m_dx[Y]) / groupSpeed(Vec4{0, 0, 0, 0});
 }
 
-auto WaveGrid::interpolateAmplitude(Grid const &grid) const {
+std::pair<Vec3, Vec3> WaveGrid::waterSurface(Vec2 pos) const {
 
-  // Make acess to grid possible even outside of the domain
-  auto extended_grid = [&grid, this](int a_x, int a_y, int b_theta, int c_k) {
+  Vec3 surface = {0, 0, 0};
+  Vec3 tx      = {0, 0, 0};
+  Vec3 ty      = {0, 0, 0};
+
+  for (int izeta = 0; izeta < gridDim(Zeta); izeta++) {
+    Real zeta    = idxToPos(izeta, Zeta);
+    auto profile = profileBuffer(izeta);
+
+    int  DIR_NUM = gridDim(Theta);
+    int  N       = 4 * DIR_NUM;
+    Real da      = 1.0 / N;
+    Real dx      = DIR_NUM * tau / N;
+    for (Real a = 0; a < 1; a += da) {
+
+      Real angle  = a * tau;
+      Vec2 kdir   = Vec2{cos(angle), sin(angle)};
+      Real kdir_x = kdir * pos;
+
+      Vec4 wave_data =
+          dx * amplitude({pos[X], pos[Y], angle, zeta}) * profile(kdir_x);
+
+      surface +=
+          Vec3{kdir[0] * wave_data[0], kdir[1] * wave_data[0], wave_data[1]};
+
+      tx += kdir[0] * Vec3{wave_data[2], 0, wave_data[3]};
+      ty += kdir[1] * Vec3{0, wave_data[2], wave_data[3]};
+    }
+  }
+
+  Vec3 normal = normalized(cross(tx, ty));
+
+  return {surface, normal};
+}
+
+auto WaveGrid::extendedGrid() const {
+  return [this](int ix, int iy, int itheta, int izeta) {
     // wrap arround for angle
-    b_theta = pos_modulo(b_theta, grid.dimension(2));
+    itheta = pos_modulo(itheta, gridDim(Theta));
 
     // return zero for wavenumber outside of a domain
-    if (c_k < 0 || c_k > grid.dimension(3)) {
+    if (izeta < 0 || izeta > gridDim(Zeta)) {
       return 0.0;
     }
 
     // return a default value for points outside of the simulation box
-    if (a_x < 0 || a_x >= grid.dimension(0) || a_y < 0 ||
-        a_y >= grid.dimension(1)) {
-      return defaultAmplitude(b_theta, c_k);
+    if (ix < 0 || ix >= gridDim(X) || iy < 0 || iy >= gridDim(Y)) {
+      return defaultAmplitude(itheta, izeta);
     }
 
     // if the point is in the domain the return the actual value of the grid
-    return grid(a_x, a_y, b_theta, c_k);
+    return m_amplitude(ix, iy, itheta, izeta);
   };
+}
 
-  auto domain = [this](int a_x, int a_y, int b_theta, int c_k) -> bool {
-    return inDomain(nodePosition(a_x, a_y));
+auto WaveGrid::interpolatedAmplitude() const {
+
+  auto extended_grid = extendedGrid();
+
+  // This function indicated which grid points are in domain and which are not
+  auto domain = [this](int ix, int iy, int itheta, int izeta) -> bool {
+    return m_enviroment.inDomain(nodePosition(ix, iy));
   };
 
   auto interpolation = InterpolationDimWise(
@@ -66,80 +138,87 @@ auto WaveGrid::interpolateAmplitude(Grid const &grid) const {
       LinearInterpolation, LinearInterpolation, LinearInterpolation,
       ConstantInterpolation);
 
-  auto igrid = DomainInterpolation(interpolation, domain)(extended_grid);
+  auto interpolated_grid =
+      DomainInterpolation(interpolation, domain)(extended_grid);
 
-  return [igrid, this](Vec4 pos4) mutable {
-    Vec4 gridPos4 = posToGrid(pos4);
-    return igrid(gridPos4(0), gridPos4(1), gridPos4(2), gridPos4(3));
+  return [interpolated_grid, this](Vec4 pos4) mutable {
+    Vec4 ipos4 = posToGrid(pos4);
+    return interpolated_grid(ipos4[X], ipos4[Y], ipos4[Theta], ipos4[Zeta]);
   };
 }
 
-Real WaveGrid::amplitude(const Vec4 pos) const {
-  return interpolateAmplitude(m_amplitude)(pos);
+Real WaveGrid::amplitude(Vec4 pos4) const {
+  return interpolatedAmplitude()(pos4);
 }
 
-std::vector<Vec4> WaveGrid::trajectory(Vec4 pos4, Real length){
+Real WaveGrid::gridValue(Idx idx4) const {
+  return extendedGrid()(idx4[X], idx4[Y], idx4[Theta], idx4[Zeta]);
+}
+
+std::vector<Vec4> WaveGrid::trajectory(Vec4 pos4, Real length) const {
 
   std::vector<Vec4> trajectory;
-  Real dist = 0;
+  Real              dist = 0;
 
-  for(Real dist =0; dist<=length;){
+  for (Real dist = 0; dist <= length;) {
 
     trajectory.push_back(pos4);
 
-    Real cg = groupSpeed(pos4);
+    Real cg  = groupSpeed(pos4);
     Vec2 vel = groupVelocity(pos4);
-    Real dt = dx()/cg;
+    Real dt  = dx(X) / cg;
 
-    pos4.segment<2>(0) += dt*vel;
+    pos4[X] += dt * vel[X];
+    pos4[Y] += dt * vel[Y];
 
     pos4 = boundaryReflection(pos4);
 
-    dist += dx();
+    dist += dt * cg;
   }
   trajectory.push_back(pos4);
   return trajectory;
 }
 
-void WaveGrid::addPointDisturbance(const Vec2 pos,const double val){
-  int ix = posToIdx(pos[0],0);
-  int iy = posToIdx(pos[1],1);
-  if(ix>=0 && ix < gridDim(0) && iy>=0 && iy <gridDim(1)){
+void WaveGrid::addPointDisturbance(const Vec2 pos, const double val) {
+  // Find the closest point on the grid to the point `pos`
+  int ix = posToIdx(pos[X], X);
+  int iy = posToIdx(pos[Y], Y);
+  if (ix >= 0 && ix < gridDim(X) && iy >= 0 && iy < gridDim(Y)) {
 
-    for(int b =0;b<gridDim(2);b++){
-      m_amplitude(ix,iy,b,0) += val;
+    for (int itheta = 0; itheta < gridDim(Theta); itheta++) {
+      m_amplitude(ix, iy, itheta, 0) += val;
     }
   }
-
 }
-
 
 void WaveGrid::advectionStep(const double dt) {
 
-  auto amplitude = interpolateAmplitude(m_amplitude);
+  auto amplitude = interpolatedAmplitude();
 
 #pragma omp parallel for collapse(2)
-  for (int a_x = 0; a_x < gridDim(0); a_x++) {
-    for (int a_y = 0; a_y < gridDim(1); a_y++) {
+  for (int ix = 0; ix < gridDim(X); ix++) {
+    for (int iy = 0; iy < gridDim(Y); iy++) {
 
-      Vec2 pos = nodePosition(a_x, a_y);
+      Vec2 pos = nodePosition(ix, iy);
 
-      if (inDomain(pos)) {
+      // update only points in the domain
+      if (m_enviroment.inDomain(pos)) {
 
-        for (int b_theta = 0; b_theta < gridDim(2); b_theta++) {
-          for (int c_k = 0; c_k < gridDim(3); c_k++) {
+        for (int itheta = 0; itheta < gridDim(Theta); itheta++) {
+          for (int izeta = 0; izeta < gridDim(Zeta); izeta++) {
 
-            Real theta = waveVectorAngle(b_theta);
-            Real k = waveNumber(c_k);
-            Vec2 cg = groupVelocity(theta, k);
+            Vec4 pos4 = idxToPos({ix, iy, itheta, izeta});
+            Vec2 vel  = groupVelocity(pos4);
 
-            Vec2 newPos = pos - dt * cg;
-            Vec4 newPos4;
-            newPos4 << newPos(0), newPos(1), theta, k;
+            // Tracing back in Semi-Lagrangian
+            Vec4 trace_back_pos4 = pos4;
+            trace_back_pos4[X] -= dt * vel[X];
+            trace_back_pos4[Y] -= dt * vel[Y];
 
-            newPos4 = boundaryReflection(newPos4);
+            // Take care of boundaries
+            trace_back_pos4 = boundaryReflection(trace_back_pos4);
 
-            m_newAmplitude(a_x, a_y, b_theta, c_k) = amplitude(newPos4);
+            m_newAmplitude(ix, iy, itheta, izeta) = amplitude(trace_back_pos4);
           }
         }
       }
@@ -149,80 +228,61 @@ void WaveGrid::advectionStep(const double dt) {
   std::swap(m_newAmplitude, m_amplitude);
 }
 
-/*
- *
- * \param gridPos position in 4D grid. In grid space coordinates!
- * \return position in 4D grid which corresponds to a reflected position
- * around boundary if necessary
- */
 Vec4 WaveGrid::boundaryReflection(const Vec4 pos4) const {
-  Vec2 pos = pos4.segment<2>(0);
-  Real ls = levelset(pos);
+  Vec2 pos = Vec2{pos4[X], pos4[Y]};
+  Real ls  = m_enviroment.levelset(pos);
   if (ls >= 0) // no reflection is needed if point is in the domain
     return pos4;
 
   // Boundary normal is approximatex by the levelset gradient
-  Vec2 n = levelsetGrad(pos);
+  Vec2 n = m_enviroment.levelsetGrad(pos);
 
-  Real theta = pos4(2); // This is in grid space!
-  Vec2 d;
-  d << cos(theta), sin(theta);
+  Real theta = pos4[Theta];
+  Vec2 kdir  = Vec2{cos(theta), sin(theta)};
 
-  pos = pos - 2.0 * ls * n;
-  assert(inDomain(pos));
+  // Reflect point and wave-vector direction around boundary
+  // Here we rely that `ls` is equal to the signed distance from the boundary
+  pos  = pos - 2.0 * ls * n;
+  kdir = kdir - 2.0 * (kdir * n) * n;
 
-  // reflect wave vector around boundary normal
-  d = d - 2.0 * (n.dot(d)) * n;
-  Real reflected_theta = atan2(d(1), d(0));
+  Real reflected_theta = atan2(kdir[Y], kdir[X]);
 
-  Vec4 newPos4;
-  newPos4 << pos(0), pos(1), reflected_theta, pos4(3);
+  // We are assuming that after one reflection you are back in the domain. This
+  // assumption is valid if you boundary is not so crazy.
+  // This assert tests this assumption.
+  assert(m_enviroment.inDomain(pos));
 
-  return newPos4;
-}
-
-bool WaveGrid::inDomain(const Vec2 pos) const { return levelset(pos) >= 0; }
-
-Real WaveGrid::levelset(const Vec2 pos) const {
-  return (pos - islandCenter).norm() - islandRadius;
-}
-
-Vec2 WaveGrid::levelsetGrad(const Vec2 pos) const {
-  Vec2 x = pos - islandCenter;
-  return x.normalized();
+  return Vec4{pos[X], pos[Y], reflected_theta, pos4[Zeta]};
 }
 
 void WaveGrid::diffusionStep(const double dt) {
+
+  auto grid = extendedGrid();
+
 #pragma omp parallel for collapse(2)
-  for (int a_x = 0; a_x < gridDim(0); a_x++) {
-    for (int a_y = 0; a_y < gridDim(1); a_y++) {
+  for (int ix = 0; ix < gridDim(X); ix++) {
+    for (int iy = 0; iy < gridDim(Y); iy++) {
 
-      float ls = levelset(nodePosition(a_x, a_y));
+      float ls = m_enviroment.levelset(nodePosition(ix, iy));
 
-      for (int b_theta = 0; b_theta < gridDim(2); b_theta++) {
-        for (int c_k = 0; c_k < gridDim(3); c_k++) {
+      for (int itheta = 0; itheta < gridDim(Theta); itheta++) {
+        for (int izeta = 0; izeta < gridDim(Zeta); izeta++) {
 
-          auto dispersion = [](int i) { return 1.0; };
+          Vec4   pos4  = idxToPos({ix, iy, itheta, izeta});
+          double gamma = 1.5 * 0.025 * groupSpeed(pos4) * dt * m_idx[X];
 
-          // this is
-          double gamma = 1.5 * 0.025 * groupSpeed(waveNumber(c_k)) * dt * m_idx[0];
-          double delta =
-              1e-5 * dt * pow(m_dx[3], 2) * dispersion(waveNumber(c_k));
+          m_newAmplitude(ix, iy, itheta, izeta) =
+              (1 - gamma) * grid(ix, iy, itheta, izeta) +
+              gamma * 0.5 *
+                  (grid(ix, iy, itheta + 1, izeta) +
+                   grid(ix, iy, itheta - 1, izeta));
 
-          m_newAmplitude(a_x, a_y, b_theta, c_k) =
-              ls <= 2 ? m_amplitude(a_x, a_y, b_theta, c_k)
-                      : //(1 - gamma - delta) *
-                  (1 - gamma) * m_amplitude(a_x, a_y, b_theta, c_k) +
-                      0.5 * gamma *
-                          (m_amplitude(a_x, a_y,
-                                       pos_modulo(b_theta + 1, gridDim(2)),
-                                       c_k) +
-                           m_amplitude(a_x, a_y,
-                                       pos_modulo(b_theta - 1, gridDim(2)),
-                                       c_k));
+          // auto dispersion = [](int i) { return 1.0; };
+          // double delta =
+          //     1e-5 * dt * pow(m_dx[3], 2) * dispersion(waveNumber(izeta));
           // 0.5 * delta *
-          //     (m_amplitude(a_x, a_y, b_theta, c_k + 1) +
-          //      m_amplitude(a_x, a_y, b_theta, c_k + 1));
+          //     (m_amplitude(ix, iy, itheta, izeta + 1) +
+          //      m_amplitude(ix, iy, itheta, izeta + 1));
         }
       }
     }
@@ -230,22 +290,71 @@ void WaveGrid::diffusionStep(const double dt) {
   std::swap(m_newAmplitude, m_amplitude);
 }
 
-void WaveGrid::precompute1DBuffers(const double dt) {
-  for (int c_k = 0; c_k < gridDim(3); c_k++) {
-  }
+Real WaveGrid::bufferPeriod(int izeta) const {
+  Real zeta = idxToPos(izeta, Zeta);
+  return waveLength(zeta + 0.5 * dx(Zeta));
 }
 
-Real WaveGrid::waterHeight(const Vec2 x) { return 0.0; }
+void WaveGrid::precomputeProfileBuffers(const double dt) {
+
+  for (int izeta = 0; izeta < gridDim(Zeta); izeta++) {
+
+    auto &buffer        = m_profileBuffers[izeta];
+    Real  buffer_period = bufferPeriod(izeta);
+    int   N             = buffer.size();
+
+    // integration bounds
+    Real zeta_min = idxToPos(izeta, Zeta) - 0.5 * dx(Zeta);
+    Real zeta_max = idxToPos(izeta, Zeta) + 0.5 * dx(Zeta);
+
+#pragma omp parallel for 
+    for (int i = 0; i < N; i++) {
+
+      Real p    = (i * buffer_period) / N;
+      buffer[i] = integrate(100, zeta_min, zeta_max, [&](Real zeta) {
+        Real waveLength = pow(2, zeta);
+        Real waveNumber = tau / waveLength;
+        Real phase  = waveNumber * p - dispersionRelation(waveNumber) * m_time;
+        Real phase2 = waveNumber * (p + buffer_period) -
+                      dispersionRelation(waveNumber) * m_time;
+
+        auto gerstner_wave = [](Real phase, Real knum) -> Vec4 {
+          Real s = sin(phase);
+          Real c = cos(phase);
+          return Vec4{-s, c, -knum * c, -knum * s};
+        };
+
+        // auto sine_wave = [waveNumber](Real phase) -> Vec4 {
+        //   Real s = sin(phase);
+        //   Real c = cos(phase);
+        //   return Vec4{0, c, 0, -waveNumber * s};
+        // };
+
+        // bubic_bump is based on $p_0$ function from
+        // https://en.wikipedia.org/wiki/Cubic_Hermite_spline
+
+        auto cubic_bump = [](Real x) {
+          if (abs(x) >= 1)
+            return 0.0;
+          else
+            return x * x * (2 * abs(x) - 3) + 1;
+        };
+
+        Real weight = p / buffer_period;
+        return cubic_bump(weight) * gerstner_wave(phase, waveNumber) +
+               cubic_bump(1 - weight) * gerstner_wave(phase2, waveNumber);
+      });
+    }
+  }
+}
 
 Real WaveGrid::idxToPos(const int idx, const int dim) const {
   return m_xmin[dim] + (idx + 0.5) * m_dx[dim];
 }
 
 Vec4 WaveGrid::idxToPos(const Idx idx) const {
-  Vec4 pos4;
-  pos4 << idxToPos(idx[0], 0), idxToPos(idx[1], 1), idxToPos(idx[2], 2),
-      idxToPos(idx[3], 3);
-  return pos4;
+  return Vec4{idxToPos(idx[X], X), idxToPos(idx[Y], Y),
+              idxToPos(idx[Theta], Theta), idxToPos(idx[Zeta], Zeta)};
 }
 
 Real WaveGrid::posToGrid(const Real pos, const int dim) const {
@@ -253,73 +362,55 @@ Real WaveGrid::posToGrid(const Real pos, const int dim) const {
 }
 
 Vec4 WaveGrid::posToGrid(const Vec4 pos4) const {
-  Vec4 grid4;
-  grid4 << posToGrid(pos4(0), 0), posToGrid(pos4(1), 1), posToGrid(pos4(2), 2),
-      posToGrid(pos4(3), 3);
-  return grid4;
+  return Vec4{posToGrid(pos4[X], X), posToGrid(pos4[Y], Y),
+              posToGrid(pos4[Theta], Theta), posToGrid(pos4[Zeta], Zeta)};
 }
 
 int WaveGrid::posToIdx(const Real pos, const int dim) const {
   return round(posToGrid(pos, dim));
 }
 
-Idx WaveGrid::posToIdx(const Vec4 pos4) const {
-  return {posToIdx(pos4(0), 0), posToIdx(pos4(1), 1), posToIdx(pos4(2), 2),
-          posToIdx(pos4(3), 3)};
+WaveGrid::Idx WaveGrid::posToIdx(const Vec4 pos4) const {
+  return Idx{posToIdx(pos4[X], X), posToIdx(pos4[Y], Y),
+             posToIdx(pos4[Theta], Theta), posToIdx(pos4[Zeta], Zeta)};
 }
 
-Vec2 WaveGrid::nodePosition(const int a_x, const int a_y) const {
-  Vec2 pos;
-  pos << idxToPos(a_x, 0), idxToPos(a_y, 1);
-  return pos;
+Vec2 WaveGrid::nodePosition(int ix, int iy) const {
+  return Vec2{idxToPos(ix, 0), idxToPos(iy, 1)};
 }
 
-Real WaveGrid::waveVectorAngle(const int angleIdx) const {
-  return idxToPos(angleIdx, 2);
+Real WaveGrid::waveLength(int izeta) const {
+  Real zeta = idxToPos(izeta, Zeta);
+  return pow(2, zeta);
 }
 
-Real WaveGrid::waveNumber(const int waveNumberIdx) const {
-  return idxToPos(waveNumberIdx, 3);
-}
+Real WaveGrid::waveNumber(int izeta) const { return tau / waveLength(izeta); }
 
-Vec2 WaveGrid::waveDirection(const int angleIdx) const {
-  Real angle = waveVectorAngle(angleIdx);
-  Vec2 d;
-  d << cos(angle), sin(angle);
-  return d;
-}
-
-Vec2 WaveGrid::waveVector(const int b_theta, const int c_k) const {
-  return waveDirection(b_theta) * waveNumber(c_k);
-}
-
-Real WaveGrid::dispersionRelation(const Real k) const {
+  
+Real WaveGrid::dispersionRelation(Real knum) const {
   const Real g = 9.81;
-  return sqrt(k * g);
+  return sqrt(knum * g);
+}
+  
+Real WaveGrid::dispersionRelation(Vec4 pos4) const {
+  Real knum = waveNumber(pos4[Zeta]);
+  return dispersionRelation(knum);
 }
 
-Real WaveGrid::groupSpeed(const Real k) const {
+Real WaveGrid::groupSpeed(Vec4 pos4) const {
+  Real knum = waveNumber(pos4[Zeta]);
   const Real g = 9.81;
-  return 0.5 * sqrt(g / k);
+  return 0.5 * sqrt(g / knum);
 }
 
-Real WaveGrid::groupSpeed(const Vec4 pos4) const{
-  return groupSpeed(pos4[3]);
+Vec2 WaveGrid::groupVelocity(Vec4 pos4) const {
+  Real cg = groupSpeed(pos4);
+  Real theta = pos4[Theta];
+  return cg*Vec2{cos(theta),sin(theta)};
 }
 
-Vec2 WaveGrid::groupVelocity(const Real theta, const Real k) const {
-  Real cg = groupSpeed(k);
-  Vec2 vel;
-  vel << cg * cos(theta), cg * sin(theta);
-  return vel;
-}
-
-Vec2 WaveGrid::groupVelocity(const Vec4 pos4) const{
-  return groupVelocity(pos4[2],pos4[3]);
-}
-
-Real WaveGrid::defaultAmplitude(const int b_theta, const int c_k) const {
-  if (b_theta == gridDim(2) / 4)
+Real WaveGrid::defaultAmplitude(const int itheta, const int izeta) const {
+  if (itheta == gridDim(2) / 4)
     return 0.4;
   return 0.0;
 }
@@ -328,6 +419,6 @@ int WaveGrid::gridDim(const int dim) const {
   return m_amplitude.dimension(dim);
 }
 
-Real WaveGrid::dx() const{
-  return std::min(m_dx[0],m_dx[1]);
-}
+Real WaveGrid::dx(int dim) const { return m_dx[dim]; }
+
+} // namespace WaterWavelets
