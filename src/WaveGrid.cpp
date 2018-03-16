@@ -307,14 +307,14 @@ void WaveGrid::precomputeProfileBuffers(const double dt) {
     Real zeta_min = idxToPos(izeta, Zeta) - 0.5 * dx(Zeta);
     Real zeta_max = idxToPos(izeta, Zeta) + 0.5 * dx(Zeta);
 
-#pragma omp parallel for 
+#pragma omp parallel for
     for (int i = 0; i < N; i++) {
 
       Real p    = (i * buffer_period) / N;
       buffer[i] = integrate(100, zeta_min, zeta_max, [&](Real zeta) {
         Real waveLength = pow(2, zeta);
         Real waveNumber = tau / waveLength;
-        Real phase  = waveNumber * p - dispersionRelation(waveNumber) * m_time;
+        Real phase1 = waveNumber * p - dispersionRelation(waveNumber) * m_time;
         Real phase2 = waveNumber * (p + buffer_period) -
                       dispersionRelation(waveNumber) * m_time;
 
@@ -340,9 +340,11 @@ void WaveGrid::precomputeProfileBuffers(const double dt) {
             return x * x * (2 * abs(x) - 3) + 1;
         };
 
-        Real weight = p / buffer_period;
-        return cubic_bump(weight) * gerstner_wave(phase, waveNumber) +
-               cubic_bump(1 - weight) * gerstner_wave(phase2, waveNumber);
+#warning The function is missing spectrum function!
+        Real weight1 = p / buffer_period;
+        Real weight2 = 1 - weight1;
+        return cubic_bump(weight1) * gerstner_wave(phase1, waveNumber) +
+               cubic_bump(weight2) * gerstner_wave(phase2, waveNumber);
       });
     }
   }
@@ -386,27 +388,26 @@ Real WaveGrid::waveLength(int izeta) const {
 
 Real WaveGrid::waveNumber(int izeta) const { return tau / waveLength(izeta); }
 
-  
 Real WaveGrid::dispersionRelation(Real knum) const {
   const Real g = 9.81;
   return sqrt(knum * g);
 }
-  
+
 Real WaveGrid::dispersionRelation(Vec4 pos4) const {
   Real knum = waveNumber(pos4[Zeta]);
   return dispersionRelation(knum);
 }
 
 Real WaveGrid::groupSpeed(Vec4 pos4) const {
-  Real knum = waveNumber(pos4[Zeta]);
-  const Real g = 9.81;
+  Real       knum = waveNumber(pos4[Zeta]);
+  const Real g    = 9.81;
   return 0.5 * sqrt(g / knum);
 }
 
 Vec2 WaveGrid::groupVelocity(Vec4 pos4) const {
-  Real cg = groupSpeed(pos4);
+  Real cg    = groupSpeed(pos4);
   Real theta = pos4[Theta];
-  return cg*Vec2{cos(theta),sin(theta)};
+  return cg * Vec2{cos(theta), sin(theta)};
 }
 
 Real WaveGrid::defaultAmplitude(const int itheta, const int izeta) const {
