@@ -1,12 +1,34 @@
 #pragma once
 
-#include <Eigen/../unsupported/Eigen/CXX11/Tensor>
-#include <Eigen/Dense>
+// #include <Eigen/../unsupported/Eigen/CXX11/Tensor>
+// #include <Eigen/Dense>
 
 #include "Enviroment.h"
 #include "global.h"
 
 namespace WaterWavelets {
+
+
+  // using Grid = Eigen::Tensor<Real, 4>;
+
+  class Grid{
+  public:
+
+    Grid();
+
+    void resize(int n0, int n1, int n2, int n3);
+
+    Real& operator()(int i0, int i1, int i2, int i3);
+
+    Real const& operator()(int i0, int i1, int i2, int i3) const;
+
+    int dimension(int dim) const;
+
+  private:
+    std::vector<Real> m_data;
+    std::array<int,4> m_dimensions;
+  };
+
 
 /*! \typedef Vec4 Location in 4D grid!
  *
@@ -25,11 +47,9 @@ namespace WaterWavelets {
  * to have a nice cascade of waves with exponentially increasing wavelengths.
  */
 
-class WaveGrid {
+class WaveGrid{
 public:
   using Idx = std::array<int, 4>;
-
-  using Grid = Eigen::Tensor<Real, 4>;
 
   enum Coord { X = 0, Y = 1, Theta = 2, Zeta = 3 };
 

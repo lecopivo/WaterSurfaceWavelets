@@ -156,45 +156,45 @@ DrawableSphere::DrawableSphere(Object3D *                   parent,
   bindBuffers(_data);
 }
 
-// DrawableLine::DrawableLine(Object3D *parent, SceneGraph::DrawableGroup3D
-// *group,
-//                            int n)
-//     : Object3D{parent}, SceneGraph::Drawable3D{*this, group} {
-//   resize(n);
-//   using Shader = Shaders::Generic3D;
+DrawableLine::DrawableLine(Object3D *parent, SceneGraph::DrawableGroup3D
+*group,
+                           int n)
+    : Object3D{parent}, SceneGraph::Drawable3D{*this, group} {
+  resize(n);
+  using Shader = Shaders::Generic3D;
 
-//   _mesh.setPrimitive(MeshPrimitive::LineStrip)
-//       .addVertexBuffer(_vertexBuffer, 0, Shader::Position{},
-//                        Shader::Color{Shader::Color::Components::Four});
-// }
+  _mesh.setPrimitive(MeshPrimitive::LineStrip)
+      .addVertexBuffer(_vertexBuffer, 0, Shader::Position{},
+                       Shader::Color{Shader::Color::Components::Four});
+}
 
-// void DrawableLine::resize(int n) {
-//   if (n != _data.size()) {
-//     _data.resize(n);
+void DrawableLine::resize(int n) {
+  if (n != _data.size()) {
+    _data.resize(n);
 
-//     float dx = 1.0 / (n - 1);
-//     for (int i = 0; i < n; i++) {
-//       _data[i].position = Vector3{i * dx, 0.f, 0.f};
-//       _data[i].color    = Color4{1.f, 1.f, 1.f, 1.f};
-//     }
+    float dx = 1.0 / (n - 1);
+    for (int i = 0; i < n; i++) {
+      _data[i].position = Vector3{i * dx, 0.f, 0.f};
+      _data[i].color    = Color4{1.f, 1.f, 1.f, 1.f};
+    }
 
-//     bindBuffers(_data);
-//   }
-// }
+    bindBuffers(_data);
+  }
+}
 
-// void DrawableLine::bindBuffers(std::vector<VertexData> const &data) {
+void DrawableLine::bindBuffers(std::vector<VertexData> const &data) {
 
-//   _vertexBuffer.setData(data, BufferUsage::DynamicDraw);
-//   _mesh.setCount(data.size());
-// }
+  _vertexBuffer.setData(data, BufferUsage::DynamicDraw);
+  _mesh.setCount(data.size());
+}
 
-// void DrawableLine::draw(const Matrix4 &       transformationMatrix,
-//                         SceneGraph::Camera3D &camera) {
+void DrawableLine::draw(const Matrix4 &       transformationMatrix,
+                        SceneGraph::Camera3D &camera) {
 
-//   _shader.setTransformationProjectionMatrix(camera.projectionMatrix() *
-//                                             transformationMatrix);
+  _shader.setTransformationProjectionMatrix(camera.projectionMatrix() *
+                                            transformationMatrix);
 
-//   _mesh.draw(_shader);
-// }
+  _mesh.draw(_shader);
+}
 
 } // namespace Magnum

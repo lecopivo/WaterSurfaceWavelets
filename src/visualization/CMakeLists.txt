@@ -14,11 +14,7 @@ corrade_add_resource(WaterSurfaceShaders_RCS resources.conf)
 # this might be important
 # set_target_properties(MagnumShaders_RCS-dependencies PROPERTIES FOLDER ".")
 
-
-add_executable(MyApplication MyApplication.cpp WaterSurfaceShader.cpp WaterSurfaceMesh.cpp ${WaterSurfaceShaders_RCS})
-
-target_link_libraries(MyApplication
-  WaveGrid
+set(VIS_LIBS WaveGrid
   drawables
   Magnum::MeshTools
   Magnum::Primitives
@@ -27,3 +23,16 @@ target_link_libraries(MyApplication
   Magnum::Shaders
   Magnum::SceneGraph
   MagnumImGui)
+
+
+add_executable(MyApplication MyApplication.cpp WaterSurfaceShader.cpp WaterSurfaceMesh.cpp ${WaterSurfaceShaders_RCS})
+target_link_libraries(MyApplication ${VIS_LIBS})
+
+add_executable(ProfileVisualization ProfileVisualization.cpp )
+target_link_libraries(ProfileVisualization ${VIS_LIBS})
+
+
+
+
+
+

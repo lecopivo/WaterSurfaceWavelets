@@ -86,43 +86,43 @@ public:
                           int rings, int segments);
 };
 
-// class DrawableLine : public Object3D, public SceneGraph::Drawable3D {
-// public:
-//   using Shader = Shaders::VertexColor3D;
+class DrawableLine : public Object3D, public SceneGraph::Drawable3D {
+public:
+  using Shader = Shaders::VertexColor3D;
 
-//   struct VertexData {
-//     Vector3 position;
-//     Color4  color;
-//   };
+  struct VertexData {
+    Vector3 position;
+    Color4  color;
+  };
 
-// public:
-//   explicit DrawableLine(Object3D *parent, SceneGraph::DrawableGroup3D *group,
-//   int n);
+public:
+  explicit DrawableLine(Object3D *parent, SceneGraph::DrawableGroup3D *group,
+  int n);
 
-//   void resize(int n);
+  void resize(int n);
 
-//   template <class Fun> void setVertices(Fun fun) {
-//     std::vector<VertexData> newData = _data;
+  template <class Fun> void setVertices(Fun fun) {
+    std::vector<VertexData> newData = _data;
 
-//     for (size_t i = 0; i < newData.size(); i++) {
-//       fun(i, newData[i]);
-//     }
-//     bindBuffers(newData);
-//   }
+    for (size_t i = 0; i < newData.size(); i++) {
+      fun(i, newData[i]);
+    }
+    bindBuffers(newData);
+  }
 
-// protected:
-//   void bindBuffers(std::vector<VertexData> const &data);
+protected:
+  void bindBuffers(std::vector<VertexData> const &data);
 
-// private:
-//   void draw(const Matrix4 &       transformationMatrix,
-//             SceneGraph::Camera3D &camera) override;
+private:
+  void draw(const Matrix4 &       transformationMatrix,
+            SceneGraph::Camera3D &camera) override;
 
-// public:
-//   Mesh   _mesh;
-//   Buffer _vertexBuffer;
-//   Shader _shader;
+public:
+  Mesh   _mesh;
+  Buffer _vertexBuffer;
+  Shader _shader;
 
-//   std::vector<VertexData> _data;
-// };
+  std::vector<VertexData> _data;
+};
 
 } // namespace Magnum

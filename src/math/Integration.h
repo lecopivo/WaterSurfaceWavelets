@@ -1,7 +1,7 @@
 #pragma once
 
 template <typename Fun>
-auto integrate(int integration_nodes, int x_min, int x_max, Fun const &fun) {
+auto integrate(int integration_nodes, double x_min, double x_max, Fun const &fun) {
 
   double dx = (x_max - x_min) / integration_nodes;
   double x  = x_min + 0.5 * dx;

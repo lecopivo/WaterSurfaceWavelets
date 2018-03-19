@@ -51,9 +51,9 @@ public:
 
 public:
   template <class Fun> void setVertices(Fun fun) {
-    //std::vector<VertexData> newData = _data;
+  // std::vector<VertexData> newData = _data;
 
-#pragma omp parallel for 
+#pragma omp parallel for
     for (size_t i = 0; i < _data.size(); i++) {
       fun(i, _data[i]);
     }
@@ -89,7 +89,7 @@ public:
   std::vector<VertexData>  _data;
   std::vector<UnsignedInt> _indices;
 
-  const int            _heightTextureSize = 4096;
+  const std::size_t    _heightTextureSize = 4096;
   std::vector<Vector4> _heightData{size_t{_heightTextureSize}};
   Texture1D            _heightTexture;
 };

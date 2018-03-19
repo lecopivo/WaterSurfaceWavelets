@@ -28,8 +28,6 @@
 #include <tuple>
 
 #include "../StokesWave.h"
-#include "WaterSurfaceMesh.h"
-#include "WaterSurfaceShader.h"
 #include "drawables/VisualizationPrimitives.h"
 
 #include "../WaveGrid.h"
@@ -44,13 +42,13 @@ using Scene3D  = SceneGraph::Scene<SceneGraph::MatrixTransformation3D>;
 auto settings = []() {
   WaveGrid::Settings s;
 
-  s.size = 50;
+  s.size           = 50;
   s.max_wavelength = 10;
-  s.min_wavelength = 0.05;
+  s.min_wavelength = 0.1;
 
-  s.n_x = 100;
-  s.n_theta = DIR_NUM;
-  s.n_zeta = 1;
+  s.n_x     = 100;
+  s.n_theta = 16;
+  s.n_zeta  = 1;
 
   s.spectrumType = WaveGrid::Settings::PiersonMoskowitz;
 
@@ -126,9 +124,7 @@ private:
   // Example objects to draw
   DrawablePlane * plane;
   DrawableSphere *sphere;
-  // DrawableLine *  line;
-
-  WaterSurfaceMesh *water_surface;
+  DrawableLine *  line;
 
   // Stokes wave
   float logdt              = -2.0;
@@ -137,7 +133,7 @@ private:
   float waveNumber         = 1.0;
   float plane_size         = 40.0;
   int   wave_type          = 1; // { STOKES = 0, GERSTNER = 1 }
-  int   wave_offset        = DIR_NUM / 4 - 1;
+  int   wave_offset        = 0;
   int   gridResolution     = 200;
   bool  update_screen_grid = true;
 
@@ -162,20 +158,22 @@ MyApplication::MyApplication(const Arguments &arguments)
   viewportEvent(defaultFramebuffer.viewport().size()); // set up camera
 
   /* Set up object to draw */
-  sphere        = new DrawableSphere(&_scene, &_drawables, 10, 10);
-  plane         = new DrawablePlane(&_scene, &_drawables, 200, 200);
-  water_surface = new WaterSurfaceMesh(&_scene, &_drawables, gridResolution);
+  sphere = (new DrawableSphere(&_scene, &_drawables, 10, 10));
+  sphere->scale({0.01f,0.01f,0.01f});
+  // plane  = new DrawablePlane(&_scene, &_drawables, 200, 200);
+  line = new DrawableLine(&_scene, &_drawables, 2*4096);
 
-  plane->setVertices([&](int, DrawablePlane::VertexData &v) {
-    v.position *= 50;
-    Vec2 p{v.position[0], v.position[1]};
-    v.position[2] = -_waveGrid.m_enviroment.levelset(p);
-  });
-  std::get<Shaders::Phong>(plane->_shader)
-      .setDiffuseColor(Color4{0.4, 0.4, 0.4, 1.0})
-      .setAmbientColor(Color3{0.25f, 0.2f, 0.23f})
-      .setShininess(10)
-      .setSpecularColor(Color4{0.2, 0.2, 0.2, 1.0});
+  // plane->setVertices([&](int, DrawablePlane::VertexData &v) {
+  //   v.position *= 50;
+  //   Vec2 p{v.position[0], v.position[1]};
+  //   v.position[2] = -_waveGrid.m_enviroment.levelset(p);
+  // });
+
+  // std::get<Shaders::Phong>(plane->_shader)
+  //     .setDiffuseColor(Color4{0.4, 0.4, 0.4, 1.0})
+  //     .setAmbientColor(Color3{0.25f, 0.2f, 0.23f})
+  //     .setShininess(10)
+  //     .setSpecularColor(Color4{0.2, 0.2, 0.2, 1.0});
 
   std::get<Shaders::Phong>(sphere->_shader)
       .setDiffuseColor(Color4{0.8, 0.2, 0.2, 1.0})
@@ -186,57 +184,21 @@ MyApplication::MyApplication(const Arguments &arguments)
 void MyApplication::drawEvent() {
   defaultFramebuffer.clear(FramebufferClear::Color | FramebufferClear::Depth);
 
-  if (update_screen_grid) {
-    water_surface->setVertices([&](int i, WaterSurfaceMesh::VertexData &v) {
+  //_waveGrid.timeStep(_waveGrid.cflTimeStep() * 0.5);
+  _waveGrid.m_time = time+100;	// 
+  _waveGrid.precomputeProfileBuffers(0);
+  std::cout << "time: " << time << std::endl;
 
-      int     ix        = i / (gridResolution + 1);
-      int     iy        = i % (gridResolution + 1);
-      Vector2 screenPos = Vector2{(2.0f * ix) / gridResolution - 1.0f,
-                                  (2.0f * iy) / gridResolution - 1.0f};
-
-      auto[dir, camPos] = cameraRayCast(screenPos);
-      dir               = dir.normalized();
-      float t           = -camPos.z() / dir.z();
-      t                 = t < 0 ? 1000 : t;
-      v.position        = camPos + t * dir;
-      v.position.z()    = 0;
-
-      for (int a = 0; a < DIR_NUM; a++) {
-        float angle = (2 * pi * a) / DIR_NUM;
-        Vec4  pos4{v.position.x(), v.position.y(), angle, _waveGrid.idxToPos(0, 3)};
-        v.amplitude[a] = amplitude * _waveGrid.amplitude(pos4);
-      }
-      // float angle = atan2(v.position[1], v.position[0]);
-      // float a     = DIR_NUM * fmod(angle / (2 * pi) + 1.0, 1.0);
-      // int   ia    = positive_modulo((int)floor(a), DIR_NUM);
-      // float wa    = a - ia;
-
-      // v.amplitude[(ia + wave_offset) % DIR_NUM] += amplitude * (1 - wa);
-      // v.amplitude[(ia + wave_offset + 1) % DIR_NUM] += amplitude * wa;
-    });
-  }
-
-  _waveGrid.timeStep(_waveGrid.cflTimeStep() * 0.5);
-
-  water_surface->setHeightField([&](float x, Vector4 &val) {
-
-    val[0] = 0;
-    val[1] = 0;
-    val[2] = 0;
-    val[3] = 0;
-    for (int i = 0; i <= 12; i++) {
-      auto[X, Y, DX, DY] =
-          gerstner_wave(amplitude * pow(2, -i), pow(2, i) * waveNumber,
-                        pow(2, i) * 2 * pi * x, time);
-
-      val[0] += X;
-      val[1] += Y;
-      val[2] += DX;
-      val[3] += DY;
-    }
+  auto & buffer = _waveGrid.m_profileBuffers[0];
+  double length = _waveGrid.bufferPeriod(0);
+  std::cout << "buffer period " << length << std::endl;
+  line->setVertices([&](int i, DrawableLine::VertexData &v) {
+    double s = v.position.x();
+    // std::cout << buffer[i][0] << " " << buffer[i][1] << std::endl;
+    double scale = amplitude;
+    Vec4 val = buffer[i%4096];
+    v.position = Vector3{s * length + 0.5*scale*val[0] - length/2, 0.0f, scale*val[1]};
   });
-
-  water_surface->_shader.setTime(time);
 
   time += pow(10.f, logdt);
 
@@ -253,12 +215,9 @@ void MyApplication::drawGui() {
   ImGui::SliderFloat("plane size", &plane_size, 1, 100);
   ImGui::SliderFloat("amplitude", &amplitude, 0, 2);
   ImGui::SliderFloat("log10(dt)", &logdt, -3, 3);
-  if (ImGui::SliderFloat("wave number", &waveNumber, 0.1, 3))
-    water_surface->_shader.setWaveNumber(waveNumber);
   ImGui::RadioButton("Stokes", &wave_type, 0);
   ImGui::SameLine();
   ImGui::RadioButton("Gerstner", &wave_type, 1);
-  ImGui::SliderInt("direction", &wave_offset, 0, DIR_NUM - 1);
   ImGui::Checkbox("update screen grid", &update_screen_grid);
 
   _gui.drawFrame();

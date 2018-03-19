@@ -13,6 +13,29 @@ constexpr int pos_modulo(int n, int d) { return (n % d + d) % d; }
 
 constexpr double tau = 6.28318530718; // https://tauday.com/tau-manifesto
 
+Grid::Grid() : m_dimensions{0, 0, 0, 0}, m_data{0} {}
+
+void Grid::resize(int n0, int n1, int n2, int n3) {
+  m_dimensions = std::array<int, 4>{n0, n1, n2, n3};
+  m_data.resize(n0 * n1 * n2 * n3);
+}
+
+Real &Grid::operator()(int i0, int i1, int i2, int i3) {
+  assert(i0 >= 0 && i0 < dimension(0) && i1 >= 0 && i1 < dimension(1) &&
+         i2 >= 0 && i2 < dimension(2) && i3 >= 0 && i3 < dimension(3));
+  //  return m_data[ i3 + i2*dimension(3) + i1*dimension(2)*dimension(3) +
+  //  i0*dimension(1)*dimension(2)*dimension(3)];
+  return m_data[i3 +
+                dimension(3) * (i2 + dimension(2) * (i1 + dimension(1) * i0))];
+}
+
+Real const &Grid::operator()(int i0, int i1, int i2, int i3) const {
+  return m_data[i3 +
+                dimension(3) * (i2 + dimension(2) * (i1 + dimension(1) * i0))];
+}
+
+int Grid::dimension(int dim) const { return m_dimensions[dim]; }
+
 auto WaveGrid::profileBuffer(int izeta) const {
   assert(izeta >= 0 && izeta < gridDim(3));
 
@@ -41,6 +64,7 @@ WaveGrid::WaveGrid(Settings s) {
 
   Real zeta_min = log2(s.min_wavelength);
   Real zeta_max = log2(s.max_wavelength);
+  std::cout << zeta_min << " " << zeta_max << std::endl;
 
   m_xmin = {-s.size, -s.size, 0.0, zeta_min};
   m_xmax = {s.size, s.size, tau, zeta_max};
@@ -110,7 +134,7 @@ auto WaveGrid::extendedGrid() const {
     itheta = pos_modulo(itheta, gridDim(Theta));
 
     // return zero for wavenumber outside of a domain
-    if (izeta < 0 || izeta > gridDim(Zeta)) {
+    if (izeta < 0 || izeta >= gridDim(Zeta)) {
       return 0.0;
     }
 
@@ -292,7 +316,7 @@ void WaveGrid::diffusionStep(const double dt) {
 
 Real WaveGrid::bufferPeriod(int izeta) const {
   Real zeta = idxToPos(izeta, Zeta);
-  return waveLength(zeta + 0.5 * dx(Zeta));
+  return pow(2, zeta + 0.5 * dx(Zeta));
 }
 
 void WaveGrid::precomputeProfileBuffers(const double dt) {
@@ -343,8 +367,11 @@ void WaveGrid::precomputeProfileBuffers(const double dt) {
 #warning The function is missing spectrum function!
         Real weight1 = p / buffer_period;
         Real weight2 = 1 - weight1;
-        return cubic_bump(weight1) * gerstner_wave(phase1, waveNumber) +
-               cubic_bump(weight2) * gerstner_wave(phase2, waveNumber);
+        return waveLength *
+               (cubic_bump(weight1) * gerstner_wave(phase1, waveNumber) +
+                cubic_bump(weight2) * gerstner_wave(phase2, waveNumber));
+        //	return waveLength*(cubic_bump(weight2) *
+        //gerstner_wave(phase2,waveNumber));
       });
     }
   }
@@ -411,8 +438,8 @@ Vec2 WaveGrid::groupVelocity(Vec4 pos4) const {
 }
 
 Real WaveGrid::defaultAmplitude(const int itheta, const int izeta) const {
-  if (itheta == gridDim(2) / 4)
-    return 0.4;
+  if (itheta == 0)
+    return 1.0;
   return 0.0;
 }
 

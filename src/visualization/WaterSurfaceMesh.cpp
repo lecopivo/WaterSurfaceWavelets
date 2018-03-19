@@ -78,7 +78,8 @@ void WaterSurfaceMesh::bindBuffers(std::vector<VertexData> const &data) {
 void WaterSurfaceMesh::bindTexture() {
   Containers::ArrayView<const void> data(_heightData.data(),
                                          _heightData.size() * sizeof(Vector4));
-  ImageView1D image(PixelFormat::RGBA, PixelType::Float, _heightTextureSize, data);
+  ImageView1D image(PixelFormat::RGBA, PixelType::Float, _heightTextureSize,
+                    data);
 
   _heightTexture.setWrapping(Sampler::Wrapping::Repeat)
       .setMagnificationFilter(Sampler::Filter::Linear)
@@ -98,7 +99,9 @@ void WaterSurfaceMesh::draw(const Matrix4 &       transformationMatrix,
       .setNormalMatrix(transformationMatrix.rotation())
       .setProjectionMatrix(camera.projectionMatrix())
       .bindTexture(_heightTexture);
+  // Renderer::setPolygonMode(Renderer::PolygonMode::Line);
   _mesh.draw(_shader);
+  // Renderer::setPolygonMode(Renderer::PolygonMode::Fill);
 }
 
 } // namespace Magnum
