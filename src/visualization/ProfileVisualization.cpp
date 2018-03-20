@@ -40,21 +40,8 @@ using namespace WaterWavelets;
 using Object3D = SceneGraph::Object<SceneGraph::MatrixTransformation3D>;
 using Scene3D  = SceneGraph::Scene<SceneGraph::MatrixTransformation3D>;
 
-auto settings = []() {
-  WaveGrid::Settings s;
-
-  s.size           = 50;
-  s.max_wavelength = 30;
-  s.min_wavelength = 0.03;
-
-  s.n_x     = 100;
-  s.n_theta = 16;
-  s.n_zeta  = 1;
-
-  s.spectrumType = WaveGrid::Settings::PiersonMoskowitz;
-
-  return s;
-}();
+ProfileBuffer profileBuffer;
+int           profileNum = 2;
 
 constexpr float pi = 3.14159265359f;
 
@@ -123,32 +110,25 @@ private:
   MagnumImGui _gui;
 
   // Example objects to draw
-  DrawablePlane * plane;
-  DrawableSphere *sphere;
-  DrawableLine *  line;
+  DrawablePlane *             plane;
+  DrawableSphere *            sphere;
+  std::vector<DrawableLine *> lines;
 
   // Stokes wave
-  float logdt              = -2.0;
-  float amplitude          = 0.5;
-  float time               = 0.0;
-  float waveNumber         = 1.0;
-  float plane_size         = 40.0;
-  int   wave_type          = 1; // { STOKES = 0, GERSTNER = 1 }
-  int   wave_offset        = 0;
-  int   gridResolution     = 200;
-  bool  update_screen_grid = true;
-  float gerstner_param     = 1.0;
-
-  WaveGrid _waveGrid;
+  float logdt          = -2.0;
+  float amplitude      = 1.0;
+  float time           = 10000.0;
+  float windSpeed      = 10.0;
+  float gerstner_param = 1.0;
 };
 
 MyApplication::MyApplication(const Arguments &arguments)
-    : Platform::Application{arguments,
-                            Configuration{}
-                                .setTitle("Magnum object picking example")
-                                .setWindowFlags(Sdl2Application::Configuration::
-                                                    WindowFlag::Resizable)},
-      _waveGrid(settings) {
+    : Platform::Application{
+          arguments,
+          Configuration{}
+              .setTitle("Magnum object picking example")
+              .setWindowFlags(
+                  Sdl2Application::Configuration::WindowFlag::Resizable)} {
   /* Configure OpenGL state */
   Renderer::enable(Renderer::Feature::DepthTest);
   Renderer::enable(Renderer::Feature::FaceCulling);
@@ -163,9 +143,13 @@ MyApplication::MyApplication(const Arguments &arguments)
   sphere = (new DrawableSphere(&_scene, &_drawables, 10, 10));
   sphere->scale({0.01f, 0.01f, 0.01f});
   plane = new DrawablePlane(&_scene, &_drawables, 1, 1);
-  plane->scale({90,90,90});
-  plane->translate({0,0,-5});
-  line  = new DrawableLine(&_scene, &_drawables, 2 * 4096);
+  plane->scale({10, 10, 10});
+  plane->translate({0, 0, -5});
+
+  lines.resize(profileNum);
+  for (int i = 0; i < profileNum; i++) {
+    lines[i] = new DrawableLine(&_scene, &_drawables, 2 * 4096);
+  }
 
   // plane->setVertices([&](int, DrawablePlane::VertexData &v) {
   //   v.position *= 50;
@@ -188,23 +172,24 @@ MyApplication::MyApplication(const Arguments &arguments)
 void MyApplication::drawEvent() {
   defaultFramebuffer.clear(FramebufferClear::Color | FramebufferClear::Depth);
 
-  //_waveGrid.timeStep(_waveGrid.cflTimeStep() * 0.5);
-  _waveGrid.m_time = time + 100; //
-  _waveGrid.precomputeProfileBuffers(0);
+  Spectrum spectrum(windSpeed);
+  double   dzeta    = (spectrum.maxZeta() - spectrum.minZeta()) / profileNum;
+  double   zeta_min = spectrum.minZeta();
+  for (int j = 0; j < profileNum; j++) {
 
-  auto & buffer = _waveGrid.m_profileBuffers[0];
-  double length = 2*_waveGrid.bufferPeriod(0);
-  line->setVertices([&](int i, DrawableLine::VertexData &v) {
-    double s = v.position.x();
-    // std::cout << buffer[i][0] << " " << buffer[i][1] << std::endl;
-    double scale = amplitude;
-    Vec4   val   = 0.1f * buffer[i % 4096];
-    v.position =
-        Vector3{s * length + gerstner_param * scale * val[0] - length / 2, 0.0f,
-                scale * val[1]};
-  });
+    auto line = lines[j];
+    profileBuffer.precompute(spectrum, time, zeta_min + j*dzeta, zeta_min + (j+1) * dzeta);
+    double length = 2 * profileBuffer.m_period;
+    line->setVertices([&](int i, DrawableLine::VertexData &v) {
+      double x   = length * v.position.x();
+      auto   val = amplitude * profileBuffer(x);
+      v.position =
+          Vector3{x + gerstner_param * val[0] - 0.5 * length,10.f*j, val[1]};
+    });
+  }
 
   time += pow(10.f, logdt);
+  std::cout << time << std::endl;
 
   _camera->draw(_drawables);
 
@@ -219,6 +204,7 @@ void MyApplication::drawGui() {
   ImGui::SliderFloat("gerstner param", &gerstner_param, 0, 1);
   ImGui::SliderFloat("amplitude", &amplitude, 0, 2);
   ImGui::SliderFloat("log10(dt)", &logdt, -3, 3);
+  ImGui::SliderFloat("wind speed", &windSpeed, 0.1, 30);
 
   _gui.drawFrame();
 
@@ -291,7 +277,6 @@ void MyApplication::mouseMoveEvent(MouseMoveEvent &event) {
   Vector3 sphereNewPos = (camPos + t * dir);
   sphere->translate(sphereNewPos - spherePos);
   Vec2 pos{sphereNewPos.x(), sphereNewPos.y()};
-  _waveGrid.addPointDisturbance(pos, 0.1);
 
   const Vector2 delta = Vector2{event.position() - _previousMousePosition} /
                         Vector2{defaultFramebuffer.viewport().size()};

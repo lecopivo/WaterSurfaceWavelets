@@ -1,34 +1,30 @@
 #pragma once
 
-// #include <Eigen/../unsupported/Eigen/CXX11/Tensor>
-// #include <Eigen/Dense>
-
 #include "Enviroment.h"
+#include "ProfileBuffer.h"
+#include "Spectrum.h"
 #include "global.h"
 
 namespace WaterWavelets {
 
+// using Grid = Eigen::Tensor<Real, 4>;
 
-  // using Grid = Eigen::Tensor<Real, 4>;
+class Grid {
+public:
+  Grid();
 
-  class Grid{
-  public:
+  void resize(int n0, int n1, int n2, int n3);
 
-    Grid();
+  Real &operator()(int i0, int i1, int i2, int i3);
 
-    void resize(int n0, int n1, int n2, int n3);
+  Real const &operator()(int i0, int i1, int i2, int i3) const;
 
-    Real& operator()(int i0, int i1, int i2, int i3);
+  int dimension(int dim) const;
 
-    Real const& operator()(int i0, int i1, int i2, int i3) const;
-
-    int dimension(int dim) const;
-
-  private:
-    std::vector<Real> m_data;
-    std::array<int,4> m_dimensions;
-  };
-
+private:
+  std::vector<Real>  m_data;
+  std::array<int, 4> m_dimensions;
+};
 
 /*! \typedef Vec4 Location in 4D grid!
  *
@@ -47,7 +43,7 @@ namespace WaterWavelets {
  * to have a nice cascade of waves with exponentially increasing wavelengths.
  */
 
-class WaveGrid{
+class WaveGrid {
 public:
   using Idx = std::array<int, 4>;
 
@@ -56,9 +52,10 @@ public:
 public:
   struct Settings {
     // domain size
-    Real size = 50;
-    Real max_wavelength = 0.01;
-    Real min_wavelength = 10;
+    Real size      = 50;
+    Real windSpeed = 10;
+    // Real max_wavelength = 0.01;
+    // Real min_wavelength = 10;
 
     // discretization nodes
     int n_x     = 100;
@@ -100,8 +97,10 @@ public:
   void addPointDisturbance(Vec2 pos, Real val);
 
 public:
-  // private:
   void advectionStep(Real dt);
+  void diffusionStep(Real dt);
+  void precomputeProfileBuffers();
+  void precomputeGroupSpeeds();
 
   /*
    * \param gridPos position in 4D grid. In grid space coordinates!
@@ -123,30 +122,6 @@ public:
    */
   auto interpolatedAmplitude() const;
 
-  void diffusionStep(Real dt);
-
-  Real bufferPeriod(int izeta) const;
-  void precomputeProfileBuffers(Real time);
-
-  /*
-   * Returns $\Psi_i$, Defined by equation (21).
-   * The return value is a lambda representing function $\Psi_i$.
-   *
-   * The lambda accepts a single number, a dot product between position and wave
-   direction, and returns four numbers:
-   * 1. horizontal offset
-   * 2. vertical offset
-   * 3. derivative of horizontal offset
-   * 4. derivative of vertical offset
-   *
-   * Assumptions: The function `precomputeProfileBuffers` has been called. That
-   function actually preforms the numerical integration and stores the result
-   into internal buffers. If you step in time with `timeStep` then
-   `precomputeProfileBuffers` gets called automatically and you don't have to
-   worry about it.
-   */
-  auto profileBuffer(int i) const;
-
 public:
   // private:
   Real idxToPos(int idx, int dim) const;
@@ -165,8 +140,10 @@ public:
 
   Real dispersionRelation(Real k) const;
   Real dispersionRelation(Vec4 pos4) const;
-  Real groupSpeed(Vec4 pos4) const;
+  Real groupSpeed(int izeta) const;
+  // Real groupSpeed(Vec4 pos4) const;
 
+  // Vec2 groupVelocity(int izeta) const;
   Vec2 groupVelocity(Vec4 pos4) const;
   Real defaultAmplitude(int itheta, int izeta) const;
 
@@ -174,14 +151,17 @@ public:
   Real dx(int dim) const;
 
 public:
-  Grid m_amplitude, m_newAmplitude;
+  Grid     m_amplitude, m_newAmplitude;
+  Spectrum m_spectrum;
 
-  std::vector<std::vector<Vec4>> m_profileBuffers;
+  std::vector<ProfileBuffer> m_profileBuffers;
 
   std::array<Real, 4> m_xmin;
   std::array<Real, 4> m_xmax;
   std::array<Real, 4> m_dx;
   std::array<Real, 4> m_idx;
+
+  std::vector<Real> m_groupSpeeds;
 
   Real m_time;
 

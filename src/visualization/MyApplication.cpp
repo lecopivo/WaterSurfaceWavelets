@@ -44,11 +44,10 @@ using Scene3D  = SceneGraph::Scene<SceneGraph::MatrixTransformation3D>;
 auto settings = []() {
   WaveGrid::Settings s;
 
-  s.size           = 50;
-  s.max_wavelength = 5;
-  s.min_wavelength = 0.01;
+  s.size      = 50;
+  s.windSpeed = 20;
 
-  s.n_x     = 30;
+  s.n_x     = 100;
   s.n_theta = DIR_NUM;
   s.n_zeta  = 1;
 
@@ -135,7 +134,7 @@ private:
   // Stokes wave
   float logdt              = -2.0;
   float amplitude          = 0.5;
-  float gerstnerParameter = 1.0;
+  float gerstnerParameter  = 1.0;
   int   directionToShow    = -1;
   int   gridResolution     = 200;
   bool  update_screen_grid = true;
@@ -210,8 +209,7 @@ void MyApplication::drawEvent() {
     });
   }
 
-  water_surface->loadProfile(_waveGrid.m_profileBuffers[0],
-                             _waveGrid.bufferPeriod(0));
+  water_surface->loadProfile(_waveGrid.m_profileBuffers[0]);
 
   _waveGrid.timeStep(_waveGrid.cflTimeStep() * pow(10, logdt));
 
@@ -225,12 +223,12 @@ void MyApplication::drawEvent() {
 void MyApplication::drawGui() {
   _gui.newFrame(windowSize(), defaultFramebuffer.viewport().size());
 
-  ImGui::SliderFloat("amplitude", &amplitude, 0, 2);
+  ImGui::SliderFloat("amplitude", &amplitude, 0, 10);
   ImGui::SliderFloat("log10(dt)", &logdt, -3, 3);
-  if(ImGui::SliderInt("direction", &directionToShow, -1, DIR_NUM)){
+  if (ImGui::SliderInt("direction", &directionToShow, -1, DIR_NUM)) {
     water_surface->_shader.setWaveDirectionToShow(directionToShow);
   }
-  if(ImGui::SliderFloat("Gerstner wave", &gerstnerParameter, 0, 1)){
+  if (ImGui::SliderFloat("Gerstner wave", &gerstnerParameter, 0, 1)) {
     water_surface->_shader.setGerstnerParameter(gerstnerParameter);
   }
   ImGui::Checkbox("update screen grid", &update_screen_grid);

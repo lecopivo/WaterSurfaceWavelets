@@ -70,23 +70,22 @@ WaterSurfaceMesh::WaterSurfaceMesh(Object3D *                   parent,
 }
 
 void WaterSurfaceMesh::loadProfile(
-    std::vector<std::array<float, 4>> const &profileBuffer,
-    float                                    profilePeriod) {
+    WaterWavelets::ProfileBuffer const &profileBuffer) {
 
-  Containers::ArrayView<const void> data(profileBuffer.data(),
-                                         profileBuffer.size() *
+  Containers::ArrayView<const void> data(profileBuffer.m_data.data(),
+                                         profileBuffer.m_data.size() *
                                              sizeof(std::array<float, 4>));
 
-  ImageView1D image(PixelFormat::RGBA, PixelType::Float, profileBuffer.size(),
+  ImageView1D image(PixelFormat::RGBA, PixelType::Float, profileBuffer.m_data.size(),
                     data);
 
   _profileTexture.setWrapping(Sampler::Wrapping::Repeat)
       .setMagnificationFilter(Sampler::Filter::Linear)
       .setMinificationFilter(Sampler::Filter::Linear)
-      .setStorage(1, TextureFormat::RGBA32F, profileBuffer.size())
+      .setStorage(1, TextureFormat::RGBA32F, profileBuffer.m_data.size())
       .setSubImage(0, {}, image);
 
-  _shader.bindTexture(_profileTexture).setProfilePeriod(profilePeriod);
+  _shader.bindTexture(_profileTexture).setProfilePeriod(profileBuffer.m_period);
 }
 
 void WaterSurfaceMesh::showTriangulationToggle() {

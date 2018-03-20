@@ -1,9 +1,5 @@
 #include "WaveGrid.h"
-#include "math/ArrayAlgebra.h"
-#include "math/Integration.h"
-
-#include "math/interpolation/DomainInterpolation.h"
-#include "math/interpolation/Interpolation.h"
+#include "math/Math.h"
 
 #include <algorithm>
 
@@ -36,34 +32,14 @@ Real const &Grid::operator()(int i0, int i1, int i2, int i3) const {
 
 int Grid::dimension(int dim) const { return m_dimensions[dim]; }
 
-auto WaveGrid::profileBuffer(int izeta) const {
-  assert(izeta >= 0 && izeta < gridDim(3));
-
-  const int N = m_profileBuffers[izeta].size();
-
-  // Guard from acessing outside of the buffer by wrapping
-  auto extended_buffer = [=](int i) -> Vec4 {
-    return m_profileBuffers[izeta][pos_modulo(i, N)];
-  };
-
-  // Preform linear interpolation
-  auto interpolated_buffer = LinearInterpolation(extended_buffer);
-
-  // the maximum wavelength represented by grid value at `izeta`
-  Real buffer_period = bufferPeriod(izeta);
-
-  return [=](Real kdir_x) mutable -> Vec4 {
-    return interpolated_buffer(N * kdir_x / buffer_period);
-  };
-}
-
-WaveGrid::WaveGrid(Settings s) {
+WaveGrid::WaveGrid(Settings s) : m_spectrum(s.windSpeed) {
 
   m_amplitude.resize(s.n_x, s.n_x, s.n_theta, s.n_zeta);
   m_newAmplitude.resize(s.n_x, s.n_x, s.n_theta, s.n_zeta);
 
-  Real zeta_min = log2(s.min_wavelength);
-  Real zeta_max = log2(s.max_wavelength);
+  Real zeta_min = m_spectrum.minZeta();
+  Real zeta_max = m_spectrum.maxZeta();
+  ;
 
   m_xmin = {-s.size, -s.size, 0.0, zeta_min};
   m_xmax = {s.size, s.size, tau, zeta_max};
@@ -76,19 +52,18 @@ WaveGrid::WaveGrid(Settings s) {
   m_time = s.initial_time;
 
   m_profileBuffers.resize(s.n_zeta);
-  for (auto &buffer : m_profileBuffers)
-    buffer.resize(4096);
+  precomputeGroupSpeeds();
 }
 
 void WaveGrid::timeStep(const Real dt) {
   advectionStep(dt);
   diffusionStep(dt);
-  precomputeProfileBuffers(m_time);
+  precomputeProfileBuffers();
   m_time += dt;
 }
 
 Real WaveGrid::cflTimeStep() const {
-  return std::min(m_dx[X], m_dx[Y]) / groupSpeed(Vec4{0, 0, 0, 0});
+  return std::min(m_dx[X], m_dx[Y]) / groupSpeed(gridDim(Zeta) - 1);
 }
 
 std::pair<Vec3, Vec3> WaveGrid::waterSurface(Vec2 pos) const {
@@ -98,8 +73,8 @@ std::pair<Vec3, Vec3> WaveGrid::waterSurface(Vec2 pos) const {
   Vec3 ty      = {0, 0, 0};
 
   for (int izeta = 0; izeta < gridDim(Zeta); izeta++) {
-    Real zeta    = idxToPos(izeta, Zeta);
-    auto profile = profileBuffer(izeta);
+    Real  zeta    = idxToPos(izeta, Zeta);
+    auto &profile = m_profileBuffers[izeta];
 
     int  DIR_NUM = gridDim(Theta);
     int  N       = 4 * DIR_NUM;
@@ -187,16 +162,15 @@ std::vector<Vec4> WaveGrid::trajectory(Vec4 pos4, Real length) const {
 
     trajectory.push_back(pos4);
 
-    Real cg  = groupSpeed(pos4);
     Vec2 vel = groupVelocity(pos4);
-    Real dt  = dx(X) / cg;
+    Real dt  = dx(X) / norm(vel);
 
     pos4[X] += dt * vel[X];
     pos4[Y] += dt * vel[Y];
 
     pos4 = boundaryReflection(pos4);
 
-    dist += dt * cg;
+    dist += dt * norm(vel);
   }
   trajectory.push_back(pos4);
   return trajectory;
@@ -291,8 +265,8 @@ void WaveGrid::diffusionStep(const Real dt) {
       for (int itheta = 0; itheta < gridDim(Theta); itheta++) {
         for (int izeta = 0; izeta < gridDim(Zeta); izeta++) {
 
-          Vec4   pos4  = idxToPos({ix, iy, itheta, izeta});
-          Real gamma = 1.5 * 0.025 * groupSpeed(pos4) * dt * m_idx[X];
+          Vec4 pos4  = idxToPos({ix, iy, itheta, izeta});
+          Real gamma = 0.025 * groupSpeed(izeta) * dt * m_idx[X];
 
           m_newAmplitude(ix, iy, itheta, izeta) =
               (1 - gamma) * grid(ix, iy, itheta, izeta) +
@@ -313,64 +287,35 @@ void WaveGrid::diffusionStep(const Real dt) {
   std::swap(m_newAmplitude, m_amplitude);
 }
 
-Real WaveGrid::bufferPeriod(int izeta) const {
-  Real zeta = idxToPos(izeta, Zeta);
-  return 3*pow(2, zeta + 0.5 * dx(Zeta));
-}
-
-void WaveGrid::precomputeProfileBuffers(const Real dt) {
+void WaveGrid::precomputeProfileBuffers() {
 
   for (int izeta = 0; izeta < gridDim(Zeta); izeta++) {
 
-    auto &buffer        = m_profileBuffers[izeta];
-    Real  buffer_period = bufferPeriod(izeta);
-    int   N             = buffer.size();
-
-    // integration bounds
     Real zeta_min = idxToPos(izeta, Zeta) - 0.5 * dx(Zeta);
     Real zeta_max = idxToPos(izeta, Zeta) + 0.5 * dx(Zeta);
 
-#pragma omp parallel for
-    for (int i = 0; i < N; i++) {
+    // define spectrum
 
-      Real p    = (i * buffer_period) / N;
-      buffer[i] = integrate(100, zeta_min, zeta_max, [&](Real zeta) {
-        Real waveLength = pow(2, zeta);
-        Real waveNumber = tau / waveLength;
-        Real phase1 = waveNumber * p - dispersionRelation(waveNumber) * m_time;
-        Real phase2 = waveNumber * (p - buffer_period) -
-                      dispersionRelation(waveNumber) * m_time;
+    m_profileBuffers[izeta].precompute(m_spectrum, m_time, zeta_min, zeta_max);
+  }
+}
 
-        auto gerstner_wave = [](Real phase/*=knum*x*/, Real knum) -> Vec4 {
-          Real s = sin(phase);
-          Real c = cos(phase);
-          return Vec4{-s, c, -  knum*c, - knum* s};
-        };
+void WaveGrid::precomputeGroupSpeeds() {
+  m_groupSpeeds.resize(gridDim(Zeta));
+  for (int izeta = 0; izeta < gridDim(Zeta); izeta++) {
 
-        // auto sine_wave = [waveNumber](Real phase) -> Vec4 {
-        //   Real s = sin(phase);
-        //   Real c = cos(phase);
-        //   return Vec4{0, c, 0, -waveNumber * s};
-        // };
+    Real zeta_min = idxToPos(izeta, Zeta) - 0.5 * dx(Zeta);
+    Real zeta_max = idxToPos(izeta, Zeta) + 0.5 * dx(Zeta);
 
-        // bubic_bump is based on $p_0$ function from
-        // https://en.wikipedia.org/wiki/Cubic_Hermite_spline
+    auto result = integrate(100, zeta_min, zeta_max, [&](Real zeta) -> Vec2 {
+      Real waveLength = pow(2, zeta);
+      Real waveNumber = tau / waveLength;
+      Real cg         = 0.5 * sqrt(9.81 / waveNumber);
+      Real density    = m_spectrum(zeta);
+      return {cg * density, density};
+    });
 
-        auto cubic_bump = [](Real x) {
-          if (abs(x) >= 1)
-            return 0.0f;
-          else
-            return x * x * (2 * abs(x) - 3) + 1;
-        };
-
-#warning The function is missing spectrum function!
-        Real weight1 = p / buffer_period;
-        Real weight2 = 1 - weight1;
-        return waveLength *
-               (cubic_bump(weight1) * gerstner_wave(phase1, waveNumber) +
-                cubic_bump(weight2) * gerstner_wave(phase2, waveNumber));
-      });
-    }
+    m_groupSpeeds[izeta] = 4*result[0]/result[1];
   }
 }
 
@@ -422,20 +367,23 @@ Real WaveGrid::dispersionRelation(Vec4 pos4) const {
   return dispersionRelation(knum);
 }
 
-Real WaveGrid::groupSpeed(Vec4 pos4) const {
-  Real       knum = waveNumber(pos4[Zeta]);
-  const Real g    = 9.81;
-  return 0.5 * sqrt(g / knum);
-}
+// Real WaveGrid::groupSpeed(Vec4 pos4) const {
+//   Real       knum = waveNumber(pos4[Zeta]);
+//   const Real g    = 9.81;
+//   return 0.5 * sqrt(g / knum);
+// }
+
+Real WaveGrid::groupSpeed(int izeta) const { return m_groupSpeeds[izeta]; }
 
 Vec2 WaveGrid::groupVelocity(Vec4 pos4) const {
-  Real cg    = groupSpeed(pos4);
+  int  izeta = posToIdx(pos4[Zeta], Zeta);
+  Real cg    = groupSpeed(izeta);
   Real theta = pos4[Theta];
   return cg * Vec2{cos(theta), sin(theta)};
 }
 
 Real WaveGrid::defaultAmplitude(const int itheta, const int izeta) const {
-  if (itheta ==0 )
+  if (itheta == 0 || itheta == gridDim(Theta)-1)
     return 0.1;
   return 0.0;
 }

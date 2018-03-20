@@ -32,6 +32,7 @@
 #include <iostream>
 
 #include "WaterSurfaceShader.h"
+#include "../ProfileBuffer.h"
 
 namespace Magnum {
 
@@ -60,8 +61,7 @@ public:
     bindBuffers(_data);
   }
 
-  void loadProfile(std::vector<std::array<float, 4>> const &profileBuffer,
-                   float                                    profilePeriod);
+  void loadProfile(WaterWavelets::ProfileBuffer const& profileBuffer);
 
   void showTriangulationToggle();
 
