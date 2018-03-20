@@ -12,7 +12,7 @@ public:
 
 public:
   Vec2 islandCenter = {0.0, 0.0};
-  Real islandRadius = 20.0;
+  Real islandRadius = 10.0;
 };
 
 } // namespace WaterWavelets

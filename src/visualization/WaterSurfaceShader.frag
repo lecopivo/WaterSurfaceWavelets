@@ -21,7 +21,7 @@ void main() {
   lowp vec4 finalSpecularColor = vec4(1.0,1.0,1.0,1.0);
   lowp vec4 lightColor = vec4(1.0,1.0,1.0,1.0);
 
-  //finalDiffuseColor.rgb += waveColor(pos);
+  finalDiffuseColor.rgb += waveColor(pos);
 
   /* Ambient color */
   fragmentColor = finalAmbientColor;

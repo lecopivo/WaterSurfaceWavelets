@@ -39,6 +39,7 @@ WaterSurfaceShader::WaterSurfaceShader() {
   _timeUniform                 = uniformLocation("time");
   _profilePeriodUniform        = uniformLocation("profilePeriod");
   _gerstnerParameterUniform    = uniformLocation("gerstnerParameter");
+  _waveDirectionToShowUniform  = uniformLocation("waveDirectionToShow");
 
   setUniform(uniformLocation("textureData"), TextureLayer);
 }

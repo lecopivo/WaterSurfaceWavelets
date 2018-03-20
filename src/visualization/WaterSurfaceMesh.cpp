@@ -21,7 +21,9 @@ WaterSurfaceMesh::WaterSurfaceMesh(Object3D *                   parent,
 
   _shader.setColor(Color4{0.4f, 0.4f, 0.8f, 1.f})
       .setAmbientColor(Color3{0.25f, 0.2f, 0.23f})
-      .setTime(0);
+      .setTime(0)
+      .setGerstnerParameter(1)
+      .setWaveDirectionToShow(-1);
 
   _mesh.setPrimitive(MeshPrimitive::Triangles)
       .setCount(_indices.size())

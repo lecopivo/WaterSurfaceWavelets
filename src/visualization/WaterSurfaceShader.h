@@ -65,6 +65,10 @@ public:
     return *this;
   }
 
+  WaterSurfaceShader &setWaveDirectionToShow(const int &direction) {
+    setUniform(_waveDirectionToShowUniform, direction);
+    return *this;
+  }
 
   WaterSurfaceShader &bindTexture(Texture1D &texture) {
     texture.bind(TextureLayer);
@@ -76,7 +80,8 @@ private:
 
   Int _lightPositionUniform, _ambientColorUniform, _colorUniform,
       _transformationMatrixUniform, _normalMatrixUniform,
-    _projectionMatrixUniform, _timeUniform, _profilePeriodUniform, _gerstnerParameterUniform;
+      _projectionMatrixUniform, _timeUniform, _profilePeriodUniform,
+    _gerstnerParameterUniform,_waveDirectionToShowUniform;
 };
 
 } // namespace Shaders

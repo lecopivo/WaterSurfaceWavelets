@@ -45,10 +45,10 @@ auto settings = []() {
   WaveGrid::Settings s;
 
   s.size           = 50;
-  s.max_wavelength = 10;
+  s.max_wavelength = 5;
   s.min_wavelength = 0.01;
 
-  s.n_x     = 100;
+  s.n_x     = 30;
   s.n_theta = DIR_NUM;
   s.n_zeta  = 1;
 
@@ -135,12 +135,9 @@ private:
   // Stokes wave
   float logdt              = -2.0;
   float amplitude          = 0.5;
-  float time               = 0.0;
-  float waveNumber         = 1.0;
-  float plane_size         = 40.0;
-  int   wave_type          = 1; // { STOKES = 0, GERSTNER = 1 }
-  int   wave_offset        = DIR_NUM / 4 - 1;
-  int   gridResolution     = 100;
+  float gerstnerParameter = 1.0;
+  int   directionToShow    = -1;
+  int   gridResolution     = 200;
   bool  update_screen_grid = true;
 
   WaveGrid _waveGrid;
@@ -203,11 +200,12 @@ void MyApplication::drawEvent() {
       v.position        = camPos + t * dir;
       v.position.z()    = 0;
 
-      for (int a = 0; a < DIR_NUM; a++) {
-        float angle = (2 * pi * a) / DIR_NUM;
-        Vec4  pos4{v.position.x(), v.position.y(), angle,
-                  _waveGrid.idxToPos(0, 3)};
-        v.amplitude[a] = amplitude * _waveGrid.amplitude(pos4);
+      for (int itheta = 0; itheta < DIR_NUM; itheta++) {
+        float theta = _waveGrid.idxToPos(itheta, WaveGrid::Theta);
+        // float theta = 2*pi*itheta/DIR_NUM;
+        Vec4 pos4{v.position.x(), v.position.y(), theta,
+                  _waveGrid.idxToPos(0, WaveGrid::Zeta)};
+        v.amplitude[itheta] = amplitude * _waveGrid.amplitude(pos4);
       }
     });
   }
@@ -215,7 +213,7 @@ void MyApplication::drawEvent() {
   water_surface->loadProfile(_waveGrid.m_profileBuffers[0],
                              _waveGrid.bufferPeriod(0));
 
-  _waveGrid.timeStep(_waveGrid.cflTimeStep() * pow(10,logdt));
+  _waveGrid.timeStep(_waveGrid.cflTimeStep() * pow(10, logdt));
 
   _camera->draw(_drawables);
 
@@ -227,12 +225,16 @@ void MyApplication::drawEvent() {
 void MyApplication::drawGui() {
   _gui.newFrame(windowSize(), defaultFramebuffer.viewport().size());
 
-  ImGui::SliderFloat("plane size", &plane_size, 1, 100);
   ImGui::SliderFloat("amplitude", &amplitude, 0, 2);
   ImGui::SliderFloat("log10(dt)", &logdt, -3, 3);
-  ImGui::SliderInt("direction", &wave_offset, 0, DIR_NUM - 1);
+  if(ImGui::SliderInt("direction", &directionToShow, -1, DIR_NUM)){
+    water_surface->_shader.setWaveDirectionToShow(directionToShow);
+  }
+  if(ImGui::SliderFloat("Gerstner wave", &gerstnerParameter, 0, 1)){
+    water_surface->_shader.setGerstnerParameter(gerstnerParameter);
+  }
   ImGui::Checkbox("update screen grid", &update_screen_grid);
-  if(ImGui::Button("Show triangulation"))
+  if (ImGui::Button("Show triangulation"))
     water_surface->showTriangulationToggle();
 
   _gui.drawFrame();
@@ -305,7 +307,7 @@ void MyApplication::mouseMoveEvent(MouseMoveEvent &event) {
   Vector3 spherePos = sphere->transformation().transformPoint(Vector3{0, 0, 0});
   Vector3 sphereNewPos = (camPos + t * dir);
   sphere->translate(sphereNewPos - spherePos);
-  sphere->scale({0.01,0.01,0.01});
+  sphere->scale({0.01, 0.01, 0.01});
   Vec2 pos{sphereNewPos.x(), sphereNewPos.y()};
   if ((event.buttons() & MouseMoveEvent::Button::Left) &&
       !(event.modifiers() & MouseMoveEvent::Modifier::Alt)) {
