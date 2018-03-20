@@ -11,7 +11,7 @@ namespace WaterWavelets {
 
 constexpr int pos_modulo(int n, int d) { return (n % d + d) % d; }
 
-constexpr double tau = 6.28318530718; // https://tauday.com/tau-manifesto
+constexpr Real tau = 6.28318530718; // https://tauday.com/tau-manifesto
 
 Grid::Grid() : m_dimensions{0, 0, 0, 0}, m_data{0} {}
 
@@ -64,7 +64,6 @@ WaveGrid::WaveGrid(Settings s) {
 
   Real zeta_min = log2(s.min_wavelength);
   Real zeta_max = log2(s.max_wavelength);
-  std::cout << zeta_min << " " << zeta_max << std::endl;
 
   m_xmin = {-s.size, -s.size, 0.0, zeta_min};
   m_xmax = {s.size, s.size, tau, zeta_max};
@@ -81,7 +80,7 @@ WaveGrid::WaveGrid(Settings s) {
     buffer.resize(4096);
 }
 
-void WaveGrid::timeStep(const double dt) {
+void WaveGrid::timeStep(const Real dt) {
   advectionStep(dt);
   diffusionStep(dt);
   precomputeProfileBuffers(m_time);
@@ -135,7 +134,7 @@ auto WaveGrid::extendedGrid() const {
 
     // return zero for wavenumber outside of a domain
     if (izeta < 0 || izeta >= gridDim(Zeta)) {
-      return 0.0;
+      return 0.0f;
     }
 
     // return a default value for points outside of the simulation box
@@ -203,7 +202,7 @@ std::vector<Vec4> WaveGrid::trajectory(Vec4 pos4, Real length) const {
   return trajectory;
 }
 
-void WaveGrid::addPointDisturbance(const Vec2 pos, const double val) {
+void WaveGrid::addPointDisturbance(const Vec2 pos, const Real val) {
   // Find the closest point on the grid to the point `pos`
   int ix = posToIdx(pos[X], X);
   int iy = posToIdx(pos[Y], Y);
@@ -215,7 +214,7 @@ void WaveGrid::addPointDisturbance(const Vec2 pos, const double val) {
   }
 }
 
-void WaveGrid::advectionStep(const double dt) {
+void WaveGrid::advectionStep(const Real dt) {
 
   auto amplitude = interpolatedAmplitude();
 
@@ -279,7 +278,7 @@ Vec4 WaveGrid::boundaryReflection(const Vec4 pos4) const {
   return Vec4{pos[X], pos[Y], reflected_theta, pos4[Zeta]};
 }
 
-void WaveGrid::diffusionStep(const double dt) {
+void WaveGrid::diffusionStep(const Real dt) {
 
   auto grid = extendedGrid();
 
@@ -293,7 +292,7 @@ void WaveGrid::diffusionStep(const double dt) {
         for (int izeta = 0; izeta < gridDim(Zeta); izeta++) {
 
           Vec4   pos4  = idxToPos({ix, iy, itheta, izeta});
-          double gamma = 1.5 * 0.025 * groupSpeed(pos4) * dt * m_idx[X];
+          Real gamma = 1.5 * 0.025 * groupSpeed(pos4) * dt * m_idx[X];
 
           m_newAmplitude(ix, iy, itheta, izeta) =
               (1 - gamma) * grid(ix, iy, itheta, izeta) +
@@ -302,7 +301,7 @@ void WaveGrid::diffusionStep(const double dt) {
                    grid(ix, iy, itheta - 1, izeta));
 
           // auto dispersion = [](int i) { return 1.0; };
-          // double delta =
+          // Real delta =
           //     1e-5 * dt * pow(m_dx[3], 2) * dispersion(waveNumber(izeta));
           // 0.5 * delta *
           //     (m_amplitude(ix, iy, itheta, izeta + 1) +
@@ -316,10 +315,10 @@ void WaveGrid::diffusionStep(const double dt) {
 
 Real WaveGrid::bufferPeriod(int izeta) const {
   Real zeta = idxToPos(izeta, Zeta);
-  return pow(2, zeta + 0.5 * dx(Zeta));
+  return 3*pow(2, zeta + 0.5 * dx(Zeta));
 }
 
-void WaveGrid::precomputeProfileBuffers(const double dt) {
+void WaveGrid::precomputeProfileBuffers(const Real dt) {
 
   for (int izeta = 0; izeta < gridDim(Zeta); izeta++) {
 
@@ -339,13 +338,13 @@ void WaveGrid::precomputeProfileBuffers(const double dt) {
         Real waveLength = pow(2, zeta);
         Real waveNumber = tau / waveLength;
         Real phase1 = waveNumber * p - dispersionRelation(waveNumber) * m_time;
-        Real phase2 = waveNumber * (p + buffer_period) -
+        Real phase2 = waveNumber * (p - buffer_period) -
                       dispersionRelation(waveNumber) * m_time;
 
-        auto gerstner_wave = [](Real phase, Real knum) -> Vec4 {
+        auto gerstner_wave = [](Real phase/*=knum*x*/, Real knum) -> Vec4 {
           Real s = sin(phase);
           Real c = cos(phase);
-          return Vec4{-s, c, -knum * c, -knum * s};
+          return Vec4{-s, c, -  knum*c, - knum* s};
         };
 
         // auto sine_wave = [waveNumber](Real phase) -> Vec4 {
@@ -359,7 +358,7 @@ void WaveGrid::precomputeProfileBuffers(const double dt) {
 
         auto cubic_bump = [](Real x) {
           if (abs(x) >= 1)
-            return 0.0;
+            return 0.0f;
           else
             return x * x * (2 * abs(x) - 3) + 1;
         };
@@ -370,8 +369,6 @@ void WaveGrid::precomputeProfileBuffers(const double dt) {
         return waveLength *
                (cubic_bump(weight1) * gerstner_wave(phase1, waveNumber) +
                 cubic_bump(weight2) * gerstner_wave(phase2, waveNumber));
-        //	return waveLength*(cubic_bump(weight2) *
-        //gerstner_wave(phase2,waveNumber));
       });
     }
   }
@@ -438,8 +435,8 @@ Vec2 WaveGrid::groupVelocity(Vec4 pos4) const {
 }
 
 Real WaveGrid::defaultAmplitude(const int itheta, const int izeta) const {
-  if (itheta == 0)
-    return 1.0;
+  if (itheta ==0 )
+    return 0.1;
   return 0.0;
 }
 

@@ -28,7 +28,7 @@
 #include <tuple>
 
 #include "../StokesWave.h"
-#include "WaterSurfaceMesh.h"
+#include "WaterSurfaceMesh.h" 1
 #include "WaterSurfaceShader.h"
 #include "drawables/VisualizationPrimitives.h"
 
@@ -44,15 +44,17 @@ using Scene3D  = SceneGraph::Scene<SceneGraph::MatrixTransformation3D>;
 auto settings = []() {
   WaveGrid::Settings s;
 
-  s.size = 50;
+  s.size           = 50;
   s.max_wavelength = 10;
-  s.min_wavelength = 0.05;
+  s.min_wavelength = 0.01;
 
-  s.n_x = 100;
+  s.n_x     = 100;
   s.n_theta = DIR_NUM;
-  s.n_zeta = 1;
+  s.n_zeta  = 1;
 
   s.spectrumType = WaveGrid::Settings::PiersonMoskowitz;
+
+  s.initial_time = 100;
 
   return s;
 }();
@@ -138,7 +140,7 @@ private:
   float plane_size         = 40.0;
   int   wave_type          = 1; // { STOKES = 0, GERSTNER = 1 }
   int   wave_offset        = DIR_NUM / 4 - 1;
-  int   gridResolution     = 200;
+  int   gridResolution     = 100;
   bool  update_screen_grid = true;
 
   WaveGrid _waveGrid;
@@ -203,42 +205,17 @@ void MyApplication::drawEvent() {
 
       for (int a = 0; a < DIR_NUM; a++) {
         float angle = (2 * pi * a) / DIR_NUM;
-        Vec4  pos4{v.position.x(), v.position.y(), angle, _waveGrid.idxToPos(0, 3)};
+        Vec4  pos4{v.position.x(), v.position.y(), angle,
+                  _waveGrid.idxToPos(0, 3)};
         v.amplitude[a] = amplitude * _waveGrid.amplitude(pos4);
       }
-      // float angle = atan2(v.position[1], v.position[0]);
-      // float a     = DIR_NUM * fmod(angle / (2 * pi) + 1.0, 1.0);
-      // int   ia    = positive_modulo((int)floor(a), DIR_NUM);
-      // float wa    = a - ia;
-
-      // v.amplitude[(ia + wave_offset) % DIR_NUM] += amplitude * (1 - wa);
-      // v.amplitude[(ia + wave_offset + 1) % DIR_NUM] += amplitude * wa;
     });
   }
 
-  _waveGrid.timeStep(_waveGrid.cflTimeStep() * 0.5);
+  water_surface->loadProfile(_waveGrid.m_profileBuffers[0],
+                             _waveGrid.bufferPeriod(0));
 
-  water_surface->setHeightField([&](float x, Vector4 &val) {
-
-    val[0] = 0;
-    val[1] = 0;
-    val[2] = 0;
-    val[3] = 0;
-    for (int i = 0; i <= 12; i++) {
-      auto[X, Y, DX, DY] =
-          gerstner_wave(amplitude * pow(2, -i), pow(2, i) * waveNumber,
-                        pow(2, i) * 2 * pi * x, time);
-
-      val[0] += X;
-      val[1] += Y;
-      val[2] += DX;
-      val[3] += DY;
-    }
-  });
-
-  water_surface->_shader.setTime(time);
-
-  time += pow(10.f, logdt);
+  _waveGrid.timeStep(_waveGrid.cflTimeStep() * pow(10,logdt));
 
   _camera->draw(_drawables);
 
@@ -253,13 +230,10 @@ void MyApplication::drawGui() {
   ImGui::SliderFloat("plane size", &plane_size, 1, 100);
   ImGui::SliderFloat("amplitude", &amplitude, 0, 2);
   ImGui::SliderFloat("log10(dt)", &logdt, -3, 3);
-  if (ImGui::SliderFloat("wave number", &waveNumber, 0.1, 3))
-    water_surface->_shader.setWaveNumber(waveNumber);
-  ImGui::RadioButton("Stokes", &wave_type, 0);
-  ImGui::SameLine();
-  ImGui::RadioButton("Gerstner", &wave_type, 1);
   ImGui::SliderInt("direction", &wave_offset, 0, DIR_NUM - 1);
   ImGui::Checkbox("update screen grid", &update_screen_grid);
+  if(ImGui::Button("Show triangulation"))
+    water_surface->showTriangulationToggle();
 
   _gui.drawFrame();
 
@@ -331,8 +305,12 @@ void MyApplication::mouseMoveEvent(MouseMoveEvent &event) {
   Vector3 spherePos = sphere->transformation().transformPoint(Vector3{0, 0, 0});
   Vector3 sphereNewPos = (camPos + t * dir);
   sphere->translate(sphereNewPos - spherePos);
+  sphere->scale({0.01,0.01,0.01});
   Vec2 pos{sphereNewPos.x(), sphereNewPos.y()};
-  _waveGrid.addPointDisturbance(pos, 0.1);
+  if ((event.buttons() & MouseMoveEvent::Button::Left) &&
+      !(event.modifiers() & MouseMoveEvent::Modifier::Alt)) {
+    _waveGrid.addPointDisturbance(pos, 0.1);
+  }
 
   const Vector2 delta = Vector2{event.position() - _previousMousePosition} /
                         Vector2{defaultFramebuffer.viewport().size()};

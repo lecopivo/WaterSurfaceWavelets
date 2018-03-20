@@ -4,7 +4,7 @@
 #include <iostream>
 #include <vector>
 
-using Real = double;
+using Real = float;
 
 using Vec2 = std::array<Real, 2>;
 using Vec3 = std::array<Real, 3>;

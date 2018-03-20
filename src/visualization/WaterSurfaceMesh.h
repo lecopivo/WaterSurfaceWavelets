@@ -60,17 +60,10 @@ public:
     bindBuffers(_data);
   }
 
-  template <class Fun> void setHeightField(Fun fun) {
+  void loadProfile(std::vector<std::array<float, 4>> const &profileBuffer,
+                   float                                    profilePeriod);
 
-    float dx = 1.0f / _heightTextureSize;
-
-    for (int i = 0; i < _heightTextureSize; i++) {
-      float x = (i + 0.5f) * dx;
-      fun(x, _heightData[i]);
-    }
-
-    bindTexture();
-  }
+  void showTriangulationToggle();
 
 protected:
   void bindBuffers(std::vector<VertexData> const &data);
@@ -83,15 +76,14 @@ private:
 public:
   Mesh   _mesh;
   Buffer _vertexBuffer, _indexBuffer;
+  bool _showTriangulation = false;
 
   Shaders::WaterSurfaceShader _shader;
 
   std::vector<VertexData>  _data;
   std::vector<UnsignedInt> _indices;
 
-  const std::size_t    _heightTextureSize = 4096;
-  std::vector<Vector4> _heightData{size_t{_heightTextureSize}};
-  Texture1D            _heightTexture;
+  Texture1D _profileTexture;
 };
 
 } // namespace Magnum

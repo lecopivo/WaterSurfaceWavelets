@@ -78,7 +78,7 @@ public:
 public:
   WaveGrid(Settings s);
 
-  void timeStep(const double dt);
+  void timeStep(const Real dt);
 
   /** \brief Position and normal of water surface
    *
@@ -101,7 +101,7 @@ public:
 
 public:
   // private:
-  void advectionStep(double dt);
+  void advectionStep(Real dt);
 
   /*
    * \param gridPos position in 4D grid. In grid space coordinates!
@@ -123,7 +123,7 @@ public:
    */
   auto interpolatedAmplitude() const;
 
-  void diffusionStep(double dt);
+  void diffusionStep(Real dt);
 
   Real bufferPeriod(int izeta) const;
   void precomputeProfileBuffers(Real time);

@@ -31,6 +31,7 @@
 #include "drawables/VisualizationPrimitives.h"
 
 #include "../WaveGrid.h"
+#include "../math/ArrayAlgebra.h"
 
 using namespace Magnum;
 using namespace Magnum::Math::Literals;
@@ -43,8 +44,8 @@ auto settings = []() {
   WaveGrid::Settings s;
 
   s.size           = 50;
-  s.max_wavelength = 10;
-  s.min_wavelength = 0.1;
+  s.max_wavelength = 30;
+  s.min_wavelength = 0.03;
 
   s.n_x     = 100;
   s.n_theta = 16;
@@ -136,6 +137,7 @@ private:
   int   wave_offset        = 0;
   int   gridResolution     = 200;
   bool  update_screen_grid = true;
+  float gerstner_param     = 1.0;
 
   WaveGrid _waveGrid;
 };
@@ -159,9 +161,11 @@ MyApplication::MyApplication(const Arguments &arguments)
 
   /* Set up object to draw */
   sphere = (new DrawableSphere(&_scene, &_drawables, 10, 10));
-  sphere->scale({0.01f,0.01f,0.01f});
-  // plane  = new DrawablePlane(&_scene, &_drawables, 200, 200);
-  line = new DrawableLine(&_scene, &_drawables, 2*4096);
+  sphere->scale({0.01f, 0.01f, 0.01f});
+  plane = new DrawablePlane(&_scene, &_drawables, 1, 1);
+  plane->scale({90,90,90});
+  plane->translate({0,0,-5});
+  line  = new DrawableLine(&_scene, &_drawables, 2 * 4096);
 
   // plane->setVertices([&](int, DrawablePlane::VertexData &v) {
   //   v.position *= 50;
@@ -185,19 +189,19 @@ void MyApplication::drawEvent() {
   defaultFramebuffer.clear(FramebufferClear::Color | FramebufferClear::Depth);
 
   //_waveGrid.timeStep(_waveGrid.cflTimeStep() * 0.5);
-  _waveGrid.m_time = time+100;	// 
+  _waveGrid.m_time = time + 100; //
   _waveGrid.precomputeProfileBuffers(0);
-  std::cout << "time: " << time << std::endl;
 
   auto & buffer = _waveGrid.m_profileBuffers[0];
-  double length = _waveGrid.bufferPeriod(0);
-  std::cout << "buffer period " << length << std::endl;
+  double length = 2*_waveGrid.bufferPeriod(0);
   line->setVertices([&](int i, DrawableLine::VertexData &v) {
     double s = v.position.x();
     // std::cout << buffer[i][0] << " " << buffer[i][1] << std::endl;
     double scale = amplitude;
-    Vec4 val = buffer[i%4096];
-    v.position = Vector3{s * length + 0.5*scale*val[0] - length/2, 0.0f, scale*val[1]};
+    Vec4   val   = 0.1f * buffer[i % 4096];
+    v.position =
+        Vector3{s * length + gerstner_param * scale * val[0] - length / 2, 0.0f,
+                scale * val[1]};
   });
 
   time += pow(10.f, logdt);
@@ -212,13 +216,9 @@ void MyApplication::drawEvent() {
 void MyApplication::drawGui() {
   _gui.newFrame(windowSize(), defaultFramebuffer.viewport().size());
 
-  ImGui::SliderFloat("plane size", &plane_size, 1, 100);
+  ImGui::SliderFloat("gerstner param", &gerstner_param, 0, 1);
   ImGui::SliderFloat("amplitude", &amplitude, 0, 2);
   ImGui::SliderFloat("log10(dt)", &logdt, -3, 3);
-  ImGui::RadioButton("Stokes", &wave_type, 0);
-  ImGui::SameLine();
-  ImGui::RadioButton("Gerstner", &wave_type, 1);
-  ImGui::Checkbox("update screen grid", &update_screen_grid);
 
   _gui.drawFrame();
 

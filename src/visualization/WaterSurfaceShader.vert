@@ -3,7 +3,6 @@ uniform highp mat4 projectionMatrix;
 uniform mediump mat3 normalMatrix;
 uniform highp vec3 light;
 uniform float time;
-uniform float waveNumber;
 
 layout(location = 0) in highp vec4 position;
 
@@ -16,12 +15,8 @@ out highp vec4 ampl[NUM];
 void main() {
   highp vec3 p = position.xyz/position.w;
 
-  // highp vec3 w = wave(p,waveNumber,time);
-  // p.z = w.z;
-  // highp vec3 normal = normalize(vec3(w.x,w.y,1));
-
-   p += wavePosition(p,waveNumber);
-   vec3 normal = vec3(0.0,0.0,1.0);
+  p += wavePosition(p);
+  vec3 normal = vec3(0.0,0.0,1.0);
   
   /* Transformed vertex position */
   highp vec4 transformedPosition4 = transformationMatrix*vec4(p.x,p.y,p.z,1);

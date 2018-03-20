@@ -21,8 +21,7 @@ WaterSurfaceMesh::WaterSurfaceMesh(Object3D *                   parent,
 
   _shader.setColor(Color4{0.4f, 0.4f, 0.8f, 1.f})
       .setAmbientColor(Color3{0.25f, 0.2f, 0.23f})
-      .setTime(0)
-      .setWaveNumber(1);
+      .setTime(0);
 
   _mesh.setPrimitive(MeshPrimitive::Triangles)
       .setCount(_indices.size())
@@ -68,24 +67,35 @@ WaterSurfaceMesh::WaterSurfaceMesh(Object3D *                   parent,
   bindBuffers(_data);
 }
 
+void WaterSurfaceMesh::loadProfile(
+    std::vector<std::array<float, 4>> const &profileBuffer,
+    float                                    profilePeriod) {
+
+  Containers::ArrayView<const void> data(profileBuffer.data(),
+                                         profileBuffer.size() *
+                                             sizeof(std::array<float, 4>));
+
+  ImageView1D image(PixelFormat::RGBA, PixelType::Float, profileBuffer.size(),
+                    data);
+
+  _profileTexture.setWrapping(Sampler::Wrapping::Repeat)
+      .setMagnificationFilter(Sampler::Filter::Linear)
+      .setMinificationFilter(Sampler::Filter::Linear)
+      .setStorage(1, TextureFormat::RGBA32F, profileBuffer.size())
+      .setSubImage(0, {}, image);
+
+  _shader.bindTexture(_profileTexture).setProfilePeriod(profilePeriod);
+}
+
+void WaterSurfaceMesh::showTriangulationToggle() {
+  _showTriangulation = !_showTriangulation;
+}
+
 void WaterSurfaceMesh::bindBuffers(std::vector<VertexData> const &data) {
 
   _vertexBuffer.setData(data, BufferUsage::DynamicDraw);
   _indexBuffer.setData(_indices, BufferUsage::StaticDraw);
   _mesh.setCount(_indices.size());
-}
-
-void WaterSurfaceMesh::bindTexture() {
-  Containers::ArrayView<const void> data(_heightData.data(),
-                                         _heightData.size() * sizeof(Vector4));
-  ImageView1D image(PixelFormat::RGBA, PixelType::Float, _heightTextureSize,
-                    data);
-
-  _heightTexture.setWrapping(Sampler::Wrapping::Repeat)
-      .setMagnificationFilter(Sampler::Filter::Linear)
-      .setMinificationFilter(Sampler::Filter::Linear)
-      .setStorage(1, TextureFormat::RGBA32F, _heightTextureSize)
-      .setSubImage(0, {}, image);
 }
 
 void WaterSurfaceMesh::draw(const Matrix4 &       transformationMatrix,
@@ -97,11 +107,13 @@ void WaterSurfaceMesh::draw(const Matrix4 &       transformationMatrix,
       //    .setLightPosition(Vector3{0.0,5.0,5.0})
       .setTransformationMatrix(transformationMatrix)
       .setNormalMatrix(transformationMatrix.rotation())
-      .setProjectionMatrix(camera.projectionMatrix())
-      .bindTexture(_heightTexture);
-  // Renderer::setPolygonMode(Renderer::PolygonMode::Line);
+      .setProjectionMatrix(camera.projectionMatrix());
+
+  if (_showTriangulation)
+    Renderer::setPolygonMode(Renderer::PolygonMode::Line);
   _mesh.draw(_shader);
-  // Renderer::setPolygonMode(Renderer::PolygonMode::Fill);
+  if (_showTriangulation)
+    Renderer::setPolygonMode(Renderer::PolygonMode::Fill);
 }
 
 } // namespace Magnum

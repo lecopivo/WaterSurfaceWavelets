@@ -55,10 +55,16 @@ public:
     return *this;
   }
 
-  WaterSurfaceShader &setWaveNumber(const Float &waveNumber) {
-    setUniform(_waveNumberUniform, waveNumber);
+  WaterSurfaceShader &setProfilePeriod(const Float &profilePeriod) {
+    setUniform(_profilePeriodUniform, profilePeriod);
     return *this;
   }
+
+  WaterSurfaceShader &setGerstnerParameter(const Float &gerstnerParameter) {
+    setUniform(_gerstnerParameterUniform, gerstnerParameter);
+    return *this;
+  }
+
 
   WaterSurfaceShader &bindTexture(Texture1D &texture) {
     texture.bind(TextureLayer);
@@ -70,7 +76,7 @@ private:
 
   Int _lightPositionUniform, _ambientColorUniform, _colorUniform,
       _transformationMatrixUniform, _normalMatrixUniform,
-      _projectionMatrixUniform, _timeUniform, _waveNumberUniform;
+    _projectionMatrixUniform, _timeUniform, _profilePeriodUniform, _gerstnerParameterUniform;
 };
 
 } // namespace Shaders

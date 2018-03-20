@@ -37,7 +37,8 @@ WaterSurfaceShader::WaterSurfaceShader() {
   _projectionMatrixUniform     = uniformLocation("projectionMatrix");
   _normalMatrixUniform         = uniformLocation("normalMatrix");
   _timeUniform                 = uniformLocation("time");
-  _waveNumberUniform           = uniformLocation("waveNumber");
+  _profilePeriodUniform        = uniformLocation("profilePeriod");
+  _gerstnerParameterUniform    = uniformLocation("gerstnerParameter");
 
   setUniform(uniformLocation("textureData"), TextureLayer);
 }
