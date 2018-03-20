@@ -27,7 +27,6 @@
 #include <iostream>
 #include <tuple>
 
-#include "../StokesWave.h"
 #include "drawables/VisualizationPrimitives.h"
 
 #include "../WaveGrid.h"

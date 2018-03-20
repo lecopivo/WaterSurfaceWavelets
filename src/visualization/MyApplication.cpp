@@ -27,7 +27,6 @@
 #include <iostream>
 #include <tuple>
 
-#include "../StokesWave.h"
 #include "WaterSurfaceMesh.h" 1
 #include "WaterSurfaceShader.h"
 #include "drawables/VisualizationPrimitives.h"
@@ -47,7 +46,7 @@ auto settings = []() {
   s.size      = 50;
   s.windSpeed = 20;
 
-  s.n_x     = 100;
+  s.n_x     = 250;
   s.n_theta = DIR_NUM;
   s.n_zeta  = 1;
 
@@ -132,8 +131,8 @@ private:
   WaterSurfaceMesh *water_surface;
 
   // Stokes wave
-  float logdt              = -2.0;
-  float amplitude          = 0.5;
+  float logdt              = 0.1;
+  float amplitude          = 3.0;
   float gerstnerParameter  = 1.0;
   int   directionToShow    = -1;
   int   gridResolution     = 200;
