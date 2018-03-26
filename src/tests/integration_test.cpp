@@ -18,12 +18,9 @@ int main(){
   std::cout << "Result of integration is: " << r << std::endl;;
 
 
-
-
   auto foo = [](double x){
 	       return std::array<double,4>{0.0,1.0,x,x*x};
 	     };
-
 
   auto result = integrate(100,0,1,foo);
 

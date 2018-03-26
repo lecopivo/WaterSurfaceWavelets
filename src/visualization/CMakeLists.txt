@@ -19,16 +19,14 @@ find_library(IMGUI_LIB ImGui)
 
 set(VIS_LIBS WaveGrid
   ${MAGNUM_IMGUI_LIB}
-  ${IMG_GUI_LIB}
+  ${IMGUI_LIB}
   drawables
   Magnum::MeshTools
   Magnum::Primitives
   Magnum::Application
   Magnum::Magnum
   Magnum::Shaders
-  Magnum::SceneGraph
-  MagnumImGui)
-
+  Magnum::SceneGraph)
 
 add_executable(MyApplication MyApplication.cpp WaterSurfaceShader.cpp WaterSurfaceMesh.cpp ${WaterSurfaceShaders_RCS})
 target_link_libraries(MyApplication ${VIS_LIBS})

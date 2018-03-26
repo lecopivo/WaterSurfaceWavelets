@@ -46,7 +46,7 @@ auto settings = []() {
   s.size      = 50;
   s.windSpeed = 20;
 
-  s.n_x     = 250;
+  s.n_x     = 100;
   s.n_theta = DIR_NUM;
   s.n_zeta  = 1;
 
