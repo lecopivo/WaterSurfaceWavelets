@@ -9,37 +9,13 @@ constexpr int pos_modulo(int n, int d) { return (n % d + d) % d; }
 
 constexpr Real tau = 6.28318530718; // https://tauday.com/tau-manifesto
 
-Grid::Grid() : m_dimensions{0, 0, 0, 0}, m_data{0} {}
-
-void Grid::resize(int n0, int n1, int n2, int n3) {
-  m_dimensions = std::array<int, 4>{n0, n1, n2, n3};
-  m_data.resize(n0 * n1 * n2 * n3);
-}
-
-Real &Grid::operator()(int i0, int i1, int i2, int i3) {
-  assert(i0 >= 0 && i0 < dimension(0) && i1 >= 0 && i1 < dimension(1) &&
-         i2 >= 0 && i2 < dimension(2) && i3 >= 0 && i3 < dimension(3));
-  //  return m_data[ i3 + i2*dimension(3) + i1*dimension(2)*dimension(3) +
-  //  i0*dimension(1)*dimension(2)*dimension(3)];
-  return m_data[i3 +
-                dimension(3) * (i2 + dimension(2) * (i1 + dimension(1) * i0))];
-}
-
-Real const &Grid::operator()(int i0, int i1, int i2, int i3) const {
-  return m_data[i3 +
-                dimension(3) * (i2 + dimension(2) * (i1 + dimension(1) * i0))];
-}
-
-int Grid::dimension(int dim) const { return m_dimensions[dim]; }
-
-WaveGrid::WaveGrid(Settings s) : m_spectrum(s.windSpeed) {
+  WaveGrid::WaveGrid(Settings s) : m_spectrum(10) {
 
   m_amplitude.resize(s.n_x, s.n_x, s.n_theta, s.n_zeta);
   m_newAmplitude.resize(s.n_x, s.n_x, s.n_theta, s.n_zeta);
 
   Real zeta_min = m_spectrum.minZeta();
   Real zeta_max = m_spectrum.maxZeta();
-  ;
 
   m_xmin = {-s.size, -s.size, 0.0, zeta_min};
   m_xmax = {s.size, s.size, tau, zeta_max};
@@ -83,7 +59,7 @@ std::pair<Vec3, Vec3> WaveGrid::waterSurface(Vec2 pos) const {
     for (Real a = 0; a < 1; a += da) {
 
       Real angle  = a * tau;
-      Vec2 kdir   = Vec2{cos(angle), sin(angle)};
+      Vec2 kdir   = Vec2{cosf(angle), sinf(angle)};
       Real kdir_x = kdir * pos;
 
       Vec4 wave_data =
@@ -235,7 +211,7 @@ Vec4 WaveGrid::boundaryReflection(const Vec4 pos4) const {
   Vec2 n = m_enviroment.levelsetGrad(pos);
 
   Real theta = pos4[Theta];
-  Vec2 kdir  = Vec2{cos(theta), sin(theta)};
+  Vec2 kdir  = Vec2{cosf(theta), sinf(theta)};
 
   // Reflect point and wave-vector direction around boundary
   // Here we rely that `ls` is equal to the signed distance from the boundary
@@ -383,7 +359,7 @@ Vec2 WaveGrid::groupVelocity(Vec4 pos4) const {
   int  izeta = posToIdx(pos4[Zeta], Zeta);
   Real cg    = groupSpeed(izeta);
   Real theta = pos4[Theta];
-  return cg * Vec2{cos(theta), sin(theta)};
+  return cg * Vec2{cosf(theta), sinf(theta)};
 }
 
 Real WaveGrid::defaultAmplitude(const int itheta, const int izeta) const {

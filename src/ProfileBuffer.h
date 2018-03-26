@@ -38,9 +38,9 @@ public:
    * `periodicity*pow(2,zeta_max)`
    * @param integration_nodes Number of integraion nodes
    */
-  template <typename Fun>
-  void precompute(Fun &spectrum, float time, float zeta_min, float zeta_max,
-                  int resolution = 4096, int periodicity = 2,
+  template <typename Spectrum>
+  void precompute(Spectrum &spectrum, float time, float zeta_min,
+                  float zeta_max, int resolution = 4096, int periodicity = 2,
                   int integration_nodes = 100) {
     m_data.resize(resolution);
     m_period = periodicity * pow(2, zeta_max);
@@ -75,31 +75,14 @@ public:
    * data
    * @param p evaluation position, it is usually p=dot(position, wavedirection)
    */
-  std::array<float, 4> operator()(float p) const{
-
-    const int N = m_data.size();
-
-    // Guard from acessing outside of the buffer by wrapping
-    auto extended_buffer = [=](int i) -> std::array<float, 4> {
-      return m_data[pos_modulo(i, N)];
-    };
-
-    // Preform linear interpolation
-    auto interpolated_buffer = LinearInterpolation(extended_buffer);
-
-    // rescale `p` to interval [0,1)
-    return interpolated_buffer(N * p / m_period);
-  }
+  std::array<float, 4> operator()(float p) const;
 
 private:
   /**
    * Dispersion relation in infinite depth -
    * https://en.wikipedia.org/wiki/Dispersion_(water_waves)
    */
-  float dispersionRelation(float k) {
-    constexpr float g = 9.81;
-    return sqrt(k * g);
-  };
+  float dispersionRelation(float k) const;
 
   /**
    * Gerstner wave - https://en.wikipedia.org/wiki/Trochoidal_wave
@@ -110,21 +93,12 @@ private:
       3. position derivative of horizontal offset
       4. position derivative of vertical offset
    */
-  std::array<float, 4> gerstner_wave(float phase /*=knum*x*/, float knum) {
-    float s = sin(phase);
-    float c = cos(phase);
-    return std::array<float, 4>{-s, c, -knum * c, -knum * s};
-  };
+  std::array<float, 4> gerstner_wave(float phase /*=knum*x*/, float knum) const;
 
   /** bubic_bump is based on $p_0$ function from
    * https://en.wikipedia.org/wiki/Cubic_Hermite_spline
    */
-  float cubic_bump(float x) {
-    if (abs(x) >= 1)
-      return 0.0f;
-    else
-      return x * x * (2 * abs(x) - 3) + 1;
-  };
+  float cubic_bump(float x) const;
 
 public:
   float m_period;
