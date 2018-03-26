@@ -9,8 +9,8 @@
 template <int I>
 auto InterpolateNthArgument = [](auto fun, auto interpolation) {
   return [=](auto... x) mutable {
-    static_assert(std::is_invocable_v<decltype(fun), decltype(x)...>,
-                  "Invalid aguments");
+	   // static_assert(std::is_invocable<decltype(fun), decltype(x)...>::value,
+           //        "Invalid aguments");
 
     auto foo = [fun, x...](int i) mutable {
       get<I>(x...) = i;

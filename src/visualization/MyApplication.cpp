@@ -20,8 +20,8 @@
 #include <Magnum/Shaders/VertexColor.h>
 #include <Magnum/Trade/MeshData3D.h>
 
-#include <MagnumImGui/MagnumImGui.h>
-#include <MagnumImGui/imgui.h>
+#include <MagnumImGui.h>
+#include <imgui.h>
 
 #include <algorithm>
 #include <iostream>

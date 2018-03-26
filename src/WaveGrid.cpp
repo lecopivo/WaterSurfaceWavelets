@@ -268,12 +268,16 @@ void WaveGrid::diffusionStep(const Real dt) {
           Vec4 pos4  = idxToPos({ix, iy, itheta, izeta});
           Real gamma = 0.025 * groupSpeed(izeta) * dt * m_idx[X];
 
-          m_newAmplitude(ix, iy, itheta, izeta) =
-              (1 - gamma) * grid(ix, iy, itheta, izeta) +
-              gamma * 0.5 *
-                  (grid(ix, iy, itheta + 1, izeta) +
-                   grid(ix, iy, itheta - 1, izeta));
-
+          // do diffusion only if you are 2 grid nodes away from boudnary
+          if (ls >= 2 * dx(X)) {
+            m_newAmplitude(ix, iy, itheta, izeta) =
+                (1 - gamma) * grid(ix, iy, itheta, izeta) +
+                gamma * 0.5 *
+                    (grid(ix, iy, itheta + 1, izeta) +
+                     grid(ix, iy, itheta - 1, izeta));
+          } else {
+            m_newAmplitude(ix, iy, itheta, izeta) = grid(ix, iy, itheta, izeta);
+          }
           // auto dispersion = [](int i) { return 1.0; };
           // Real delta =
           //     1e-5 * dt * pow(m_dx[3], 2) * dispersion(waveNumber(izeta));
@@ -315,7 +319,7 @@ void WaveGrid::precomputeGroupSpeeds() {
       return {cg * density, density};
     });
 
-    m_groupSpeeds[izeta] = 4*result[0]/result[1];
+    m_groupSpeeds[izeta] = 4 * result[0] / result[1];
   }
 }
 
@@ -383,7 +387,7 @@ Vec2 WaveGrid::groupVelocity(Vec4 pos4) const {
 }
 
 Real WaveGrid::defaultAmplitude(const int itheta, const int izeta) const {
-  if (itheta == 0 || itheta == gridDim(Theta)-1)
+  if (itheta == 0 || itheta == gridDim(Theta) - 1)
     return 0.1;
   return 0.0;
 }

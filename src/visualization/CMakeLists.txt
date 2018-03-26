@@ -14,7 +14,12 @@ corrade_add_resource(WaterSurfaceShaders_RCS resources.conf)
 # this might be important
 # set_target_properties(MagnumShaders_RCS-dependencies PROPERTIES FOLDER ".")
 
+find_library(MAGNUM_IMGUI_LIB MagnumImGui)
+find_library(IMGUI_LIB ImGui)
+
 set(VIS_LIBS WaveGrid
+  ${MAGNUM_IMGUI_LIB}
+  ${IMG_GUI_LIB}
   drawables
   Magnum::MeshTools
   Magnum::Primitives

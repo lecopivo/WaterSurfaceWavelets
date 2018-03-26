@@ -20,8 +20,8 @@
 #include <Magnum/Shaders/VertexColor.h>
 #include <Magnum/Trade/MeshData3D.h>
 
-#include <MagnumImGui/MagnumImGui.h>
-#include <MagnumImGui/imgui.h>
+#include <MagnumImGui.h>
+#include <imgui.h>
 
 #include <algorithm>
 #include <iostream>
@@ -183,7 +183,7 @@ void MyApplication::drawEvent() {
       double x   = length * v.position.x();
       auto   val = amplitude * profileBuffer(x);
       v.position =
-          Vector3{x + gerstner_param * val[0] - 0.5 * length,10.f*j, val[1]};
+	Vector3{(float)(x + gerstner_param * val[0] - 0.5 * length),10.f*j, val[1]};
     });
   }
 
