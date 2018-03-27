@@ -13,7 +13,7 @@ find_package(Magnum REQUIRED
   SceneGraph
   Sdl2Application)
 
-include_directories("/usr/include/SDL2/") # This should not be here!
+include_directories(${SDL2_INCLUDE_DIR}) # Why do I have to have this line?
 
 add_subdirectory(base)
 add_subdirectory(waterSurface)
