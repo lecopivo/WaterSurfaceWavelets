@@ -6,7 +6,7 @@ uniform float profilePeriod;
 uniform float gerstnerParameter;
 uniform int waveDirectionToShow;
 
-// Define Ampl for vertex shader
+// Define getAmpl for vertex shader
 #if VERTEX_SHADER
 layout(location = 1) in highp vec4 amplitude[NUM];
 
@@ -16,7 +16,7 @@ float getAmpl(int i){
 }
 #endif
 
-// Define Ampl for fragment shader
+// Define getAmpl for fragment shader
 #if FRAGMENT_SHADER
 in highp vec4 ampl[NUM];
 
@@ -41,7 +41,7 @@ float Ampl(int i){
 
 const float tau = 6.28318530718;
 
-float iAmpl( float angle/*range [0,2pi]*/){
+float iAmpl( float angle/*in [0,2pi]*/){
   float a = DIR_NUM*angle/tau + DIR_NUM - 0.5;
   int ia = int(floor(a));
   float w = a-ia;

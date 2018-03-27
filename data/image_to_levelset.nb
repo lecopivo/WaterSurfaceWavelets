@@ -1,0 +1,122 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Mathematica 11.2' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       158,          7]
+NotebookDataLength[      3798,        114]
+NotebookOptionsPosition[      3505,        101]
+NotebookOutlinePosition[      3845,        116]
+CellTagsIndexPosition[      3802,        113]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"name", " ", "=", " ", "\"\<harbor\>\""}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"img", "=", 
+   RowBox[{"Import", "[", 
+    RowBox[{"FileNameJoin", "[", 
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"NotebookDirectory", "[", "]"}], ",", 
+       RowBox[{"name", "<>", "\"\<.png\>\""}]}], "}"}], "]"}], "]"}]}], 
+  ";"}], "\n", 
+ RowBox[{
+  RowBox[{"scale", " ", "=", " ", "16"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"b", "=", 
+   RowBox[{"Binarize", "[", 
+    RowBox[{
+     RowBox[{"ImageResize", "[", 
+      RowBox[{"img", ",", 
+       RowBox[{"Scaled", "[", "scale", "]"}]}], "]"}], ",", ".5"}], "]"}]}], 
+  ";"}], "\n", 
+ RowBox[{
+  RowBox[{"d", "=", 
+   RowBox[{
+    RowBox[{"DistanceTransform", "[", "b", "]"}], "-", 
+    RowBox[{"DistanceTransform", "[", 
+     RowBox[{"1", "-", 
+      RowBox[{"Dilation", "[", 
+       RowBox[{"b", ",", "1"}], "]"}]}], "]"}]}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"data", " ", "=", " ", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"ImageData", "[", "d", "]"}], "[", 
+     RowBox[{"[", 
+      RowBox[{
+       RowBox[{";;", ";;", "16"}], ",", 
+       RowBox[{";;", ";;", "16"}]}], "]"}], "]"}], "/", "scale"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Export", "[", " ", 
+   RowBox[{
+    RowBox[{"FileNameJoin", "[", 
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"NotebookDirectory", "[", "]"}], ",", 
+       RowBox[{"name", "<>", "\"\<.dat\>\""}]}], "}"}], "]"}], ",", "data"}], 
+   "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Export", "[", " ", 
+   RowBox[{
+    RowBox[{"FileNameJoin", "[", 
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"NotebookDirectory", "[", "]"}], ",", 
+       RowBox[{"name", "<>", "\"\<_sdf.png\>\""}]}], "}"}], "]"}], ",", 
+    RowBox[{"ImageAdjust", "[", "d", "]"}]}], "]"}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{"ListPlot3D", "[", 
+  RowBox[{
+   RowBox[{"ImageData", "[", "d", "]"}], "[", 
+   RowBox[{"[", 
+    RowBox[{
+     RowBox[{";;", ";;", "scale"}], ",", 
+     RowBox[{";;", ";;", "scale"}]}], "]"}], "]"}], "]"}]}], "Input",
+ CellChangeTimes->{{3.731141501501813*^9, 3.731141562924609*^9}, {
+  3.7311416306277103`*^9, 3.7311416769397097`*^9}, {3.731141742177104*^9, 
+  3.7311417848103733`*^9}, {3.7311418198474293`*^9, 3.7311418252830544`*^9}, {
+  3.731141900136755*^9, 3.7311419469459267`*^9}, {3.731142216672079*^9, 
+  3.7311422940013227`*^9}, {3.731142350747254*^9, 3.731142355882502*^9}, {
+  3.731142856761895*^9, 3.731142887372123*^9}, {3.731152353361403*^9, 
+  3.731152404957324*^9}, {3.731152435463513*^9, 3.731152438705081*^9}, {
+  3.731152482811363*^9, 3.731152483094492*^9}, {3.731152519862794*^9, 
+  3.731152522466228*^9}, {3.731152634838724*^9, 3.731152776059433*^9}, {
+  3.731152895078721*^9, 3.731152924009446*^9}, {3.7311529869439697`*^9, 
+  3.7311529888417377`*^9}},ExpressionUUID->"1e3c6528-acbf-45fe-838d-\
+451d2661b900"]
+},
+WindowSize->{808, 915},
+WindowMargins->{{221, Automatic}, {13, Automatic}},
+FrontEndVersion->"11.2 for Linux x86 (64-bit) (September 10, 2017)",
+StyleDefinitions->"Default.nb"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[558, 20, 2943, 79, 216, "Input",ExpressionUUID->"1e3c6528-acbf-45fe-838d-451d2661b900"]
+}
+]
+*)
+

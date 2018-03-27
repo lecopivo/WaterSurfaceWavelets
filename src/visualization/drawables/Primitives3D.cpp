@@ -1,16 +1,18 @@
-#include "VisualizationPrimitives.h"
+#include "Primitives3D.h"
 
 #include <iostream>
 
 namespace Magnum {
+namespace Drawables {
 
 using namespace Magnum::Math::Literals;
 
-DrawableMesh::DrawableMesh(Object3D *parent, SceneGraph::DrawableGroup3D *group)
-    : Object3D{parent}, SceneGraph::Drawable3D{*this, group},
+DrawableMesh::DrawableMesh(SceneBase3D::Object3D *parent, SceneGraph::DrawableGroup3D *group)
+    : SceneBase3D::Object3D{parent}, SceneGraph::Drawable3D{*this, group},
       _shader(Shaders::Phong{}) {
 
-  auto &s = std::get<Shaders::Phong>(_shader);
+  // auto &s = std::get<Shaders::Phong>(_shader);
+  auto &s = _shader;
   s.setDiffuseColor(Color4{0.4f, 0.4f, 0.8f, 1.f})
       .setAmbientColor(Color3{0.25f, 0.2f, 0.23f});
 
@@ -33,42 +35,42 @@ void DrawableMesh::bindBuffers(std::vector<VertexData> const &data) {
 void DrawableMesh::draw(const Matrix4 &       transformationMatrix,
                         SceneGraph::Camera3D &camera) {
 
-  if (std::holds_alternative<Shaders::Phong>(_shader)) {
-    auto &s = std::get<Shaders::Phong>(_shader);
+  // if (std::holds_alternative<Shaders::Phong>(_shader)) {
+  //   auto &s = std::get<Shaders::Phong>(_shader);
+  auto &s = _shader;
 
-    s.setLightPosition(
-         camera.cameraMatrix().transformPoint({15.0f, 15.0f, 30.0f}))
-        .setTransformationMatrix(transformationMatrix)
-        .setNormalMatrix(transformationMatrix.rotation())
-        .setProjectionMatrix(camera.projectionMatrix());
-    _mesh.draw(s);
-  }
-
-  if (std::holds_alternative<Shaders::VertexColor3D>(_shader)) {
-    auto &s = std::get<Shaders::VertexColor3D>(_shader);
-
-    s.setTransformationProjectionMatrix(camera.projectionMatrix() *
-                                        transformationMatrix);
-    _mesh.draw(s);
-  }
-
-  if (std::holds_alternative<Shaders::Flat3D>(_shader)) {
-    auto &s = std::get<Shaders::Flat3D>(_shader);
-
-    s.setTransformationProjectionMatrix(camera.projectionMatrix() *
-                                        transformationMatrix);
-    _mesh.draw(s);
-  }
-
-  if (std::holds_alternative<Shaders::MeshVisualizer>(_shader)) {
-    auto &s = std::get<Shaders::MeshVisualizer>(_shader);
-
-    s.setTransformationProjectionMatrix(camera.projectionMatrix() *
-                                        transformationMatrix)
-        .setViewportSize(Vector2{defaultFramebuffer.viewport().size()});
-    _mesh.draw(s);
-  }
+  s.setLightPosition(
+       camera.cameraMatrix().transformPoint({15.0f, 15.0f, 30.0f}))
+      .setTransformationMatrix(transformationMatrix)
+      .setNormalMatrix(transformationMatrix.rotation())
+      .setProjectionMatrix(camera.projectionMatrix());
+  _mesh.draw(s);
 }
+
+// if (std::holds_alternative<Shaders::VertexColor3D>(_shader)) {
+//   auto &s = std::get<Shaders::VertexColor3D>(_shader);
+
+//   s.setTransformationProjectionMatrix(camera.projectionMatrix() *
+//                                       transformationMatrix);
+//   _mesh.draw(s);
+// }
+
+// if (std::holds_alternative<Shaders::Flat3D>(_shader)) {
+//   auto &s = std::get<Shaders::Flat3D>(_shader);
+
+//   s.setTransformationProjectionMatrix(camera.projectionMatrix() *
+//                                       transformationMatrix);
+//   _mesh.draw(s);
+// }
+
+// if (std::holds_alternative<Shaders::MeshVisualizer>(_shader)) {
+//   auto &s = std::get<Shaders::MeshVisualizer>(_shader);
+
+//   s.setTransformationProjectionMatrix(camera.projectionMatrix() *
+//                                       transformationMatrix)
+//       .setViewportSize(Vector2{defaultFramebuffer.viewport().size()});
+//   _mesh.draw(s);
+// }
 
 void DrawableMesh::recomputeNormals(std::vector<VertexData> &data) {
   for (auto &d : data) {
@@ -97,8 +99,8 @@ void DrawableMesh::recomputeNormals(std::vector<VertexData> &data) {
     d.normal = d.normal.normalized();
 }
 
-DrawablePlane::DrawablePlane(Object3D *                   parent,
-                             SceneGraph::DrawableGroup3D *group, int nx, int ny)
+Plane::Plane(SceneBase3D::Object3D *parent, SceneGraph::DrawableGroup3D *group, int nx,
+             int ny)
     : DrawableMesh(parent, group) {
 
   float dx = 2.0f / nx;
@@ -137,12 +139,13 @@ DrawablePlane::DrawablePlane(Object3D *                   parent,
   bindBuffers(_data);
 }
 
-DrawableSphere::DrawableSphere(Object3D *                   parent,
-                               SceneGraph::DrawableGroup3D *group, int rings,
-                               int segments)
+Sphere::Sphere(SceneBase3D::Object3D *parent, SceneGraph::DrawableGroup3D *group, int rings,
+               int segments)
     : DrawableMesh(parent, group) {
 
   auto meshData = Primitives::UVSphere::solid(rings, segments);
+
+#warning "Normals are incorrect!"
 
   _data.resize(meshData.positions(0).size());
   for (size_t i = 0; i < meshData.positions(0).size(); i++) {
@@ -156,10 +159,9 @@ DrawableSphere::DrawableSphere(Object3D *                   parent,
   bindBuffers(_data);
 }
 
-DrawableLine::DrawableLine(Object3D *parent, SceneGraph::DrawableGroup3D
-*group,
+DrawableLine::DrawableLine(SceneBase3D::Object3D *parent, SceneGraph::DrawableGroup3D *group,
                            int n)
-    : Object3D{parent}, SceneGraph::Drawable3D{*this, group} {
+    : SceneBase3D::Object3D{parent}, SceneGraph::Drawable3D{*this, group} {
   resize(n);
   using Shader = Shaders::Generic3D;
 
@@ -196,5 +198,5 @@ void DrawableLine::draw(const Matrix4 &       transformationMatrix,
 
   _mesh.draw(_shader);
 }
-
+} // namespace Drawables
 } // namespace Magnum

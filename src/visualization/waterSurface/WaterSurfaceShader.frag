@@ -1,3 +1,10 @@
+// The final shader is in several files and the final version is stitched together in the constructor of the class WaterSurfaceShader. This is because GLSL does not provide #include directive
+//
+// The final fragmetn shader contain:
+// #include "DirectionNumber.h"
+// # define FRAGMENT_SHADER
+// #include "WaterSurfaceShader.glsl"
+
 uniform lowp vec4 ambientColor;
 uniform lowp vec4 color;
 uniform mat3 normalMatrix;
@@ -16,12 +23,11 @@ void main() {
 
   //////////////////////////////////////
   lowp vec4 finalAmbientColor = ambientColor;
-  //lowp vec4 finalDiffuseColor = vec4(Ampl(0),Ampl(1),Ampl(2),1.0);
   lowp vec4 finalDiffuseColor = color;
   lowp vec4 finalSpecularColor = vec4(1.0,1.0,1.0,1.0);
   lowp vec4 lightColor = vec4(1.0,1.0,1.0,1.0);
 
-  finalDiffuseColor.rgb += waveColor(pos);
+  // finalDiffuseColor.rgb += waveColor(pos);
 
   /* Ambient color */
   fragmentColor = finalAmbientColor;

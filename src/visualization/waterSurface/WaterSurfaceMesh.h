@@ -31,15 +31,13 @@
 
 #include <iostream>
 
+#include "../base/SceneBase3D.h"
 #include "WaterSurfaceShader.h"
-#include "../ProfileBuffer.h"
+#include "../../ProfileBuffer.h"
 
 namespace Magnum {
 
-using Object3D = SceneGraph::Object<SceneGraph::MatrixTransformation3D>;
-using Scene3D  = SceneGraph::Scene<SceneGraph::MatrixTransformation3D>;
-
-class WaterSurfaceMesh : public Object3D, public SceneGraph::Drawable3D {
+class WaterSurfaceMesh : public SceneBase3D::Object3D, public SceneGraph::Drawable3D {
 public:
   struct VertexData {
     Vector3                      position;
@@ -47,7 +45,7 @@ public:
   };
 
 public:
-  explicit WaterSurfaceMesh(Object3D *                   parent,
+  explicit WaterSurfaceMesh(SceneBase3D::Object3D *                   parent,
                             SceneGraph::DrawableGroup3D *group, int n);
 
 public:

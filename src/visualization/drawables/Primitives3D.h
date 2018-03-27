@@ -26,15 +26,16 @@
 
 #include <variant>
 
-namespace Magnum {
+#include "../base/SceneBase3D.h"
 
-using Object3D = SceneGraph::Object<SceneGraph::MatrixTransformation3D>;
-using Scene3D  = SceneGraph::Scene<SceneGraph::MatrixTransformation3D>;
-  
-class DrawableMesh : public Object3D, public SceneGraph::Drawable3D {
+namespace Magnum {
+namespace Drawables {
+
+class DrawableMesh : public SceneBase3D::Object3D, public SceneGraph::Drawable3D {
 public:
-  using Shader = std::variant<Shaders::Phong, Shaders::VertexColor3D,
-                              Shaders::Flat3D, Shaders::MeshVisualizer>;
+  // using Shader = std::variant<Shaders::Phong, Shaders::VertexColor3D,
+  //                             Shaders::Flat3D, Shaders::MeshVisualizer>;
+  using Shader = Shaders::Phong;
 
   struct VertexData {
     Vector3 position;
@@ -43,7 +44,7 @@ public:
   };
 
 protected:
-  explicit DrawableMesh(Object3D *parent, SceneGraph::DrawableGroup3D *group);
+  explicit DrawableMesh(SceneBase3D::Object3D *parent, SceneGraph::DrawableGroup3D *group);
 
 public:
   template <class Fun> void setVertices(Fun fun) {
@@ -67,26 +68,26 @@ private:
 
 public:
   Mesh   _mesh;
-  Buffer _vertexBuffer, _indexBuffer;
+  Buffer _vertexBuffer, _indexBuffer{Buffer::TargetHint::ElementArray};
   Shader _shader;
 
   std::vector<VertexData>  _data;
   std::vector<UnsignedInt> _indices;
 };
 
-class DrawablePlane : public DrawableMesh {
+class Plane : public DrawableMesh {
 public:
-  explicit DrawablePlane(Object3D *parent, SceneGraph::DrawableGroup3D *group,
+  explicit Plane(SceneBase3D::Object3D *parent, SceneGraph::DrawableGroup3D *group,
                          int nx, int ny);
 };
 
-class DrawableSphere : public DrawableMesh {
+class Sphere : public DrawableMesh {
 public:
-  explicit DrawableSphere(Object3D *parent, SceneGraph::DrawableGroup3D *group,
+  explicit Sphere(SceneBase3D::Object3D *parent, SceneGraph::DrawableGroup3D *group,
                           int rings, int segments);
 };
 
-class DrawableLine : public Object3D, public SceneGraph::Drawable3D {
+class DrawableLine : public SceneBase3D::Object3D, public SceneGraph::Drawable3D {
 public:
   using Shader = Shaders::VertexColor3D;
 
@@ -96,8 +97,8 @@ public:
   };
 
 public:
-  explicit DrawableLine(Object3D *parent, SceneGraph::DrawableGroup3D *group,
-  int n);
+  explicit DrawableLine(SceneBase3D::Object3D *parent, SceneGraph::DrawableGroup3D *group,
+                        int n);
 
   void resize(int n);
 
@@ -124,5 +125,5 @@ public:
 
   std::vector<VertexData> _data;
 };
-
+} // namespace Drawables
 } // namespace Magnum

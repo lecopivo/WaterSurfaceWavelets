@@ -15,9 +15,9 @@ void addVertexBuffer(Mesh &mesh, Buffer &buffer, std::index_sequence<I...>) {
                        Shader::Amplitude<I>{}...);
 }
 
-WaterSurfaceMesh::WaterSurfaceMesh(Object3D *                   parent,
+WaterSurfaceMesh::WaterSurfaceMesh(SceneBase3D::Object3D *                   parent,
                                    SceneGraph::DrawableGroup3D *group, int n)
-    : Object3D{parent}, SceneGraph::Drawable3D{*this, group} {
+    : SceneBase3D::Object3D{parent}, SceneGraph::Drawable3D{*this, group} {
 
   _shader.setColor(Color4{0.4f, 0.4f, 0.8f, 1.f})
       .setAmbientColor(Color3{0.25f, 0.2f, 0.23f})

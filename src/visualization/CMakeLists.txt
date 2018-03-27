@@ -1,7 +1,11 @@
-add_subdirectory(drawables)
+#  _     _ _         
+# | |   (_) |__  ___ 
+# | |   | | '_ \/ __|
+# | |___| | |_) \__ \
+# |_____|_|_.__/|___/
+#
 
-set_directory_properties(PROPERTIES CORRADE_USE_PEDANTIC_FLAGS ON)
-
+#Find Magnum 
 find_package(Magnum REQUIRED
   MeshTools
   Primitives
@@ -9,32 +13,45 @@ find_package(Magnum REQUIRED
   SceneGraph
   Sdl2Application)
 
-corrade_add_resource(WaterSurfaceShaders_RCS resources.conf)
+include_directories("/usr/include/SDL2/") # This should not be here!
 
-# this might be important
-# set_target_properties(MagnumShaders_RCS-dependencies PROPERTIES FOLDER ".")
+add_subdirectory(base)
+add_subdirectory(waterSurface)
+add_subdirectory(drawables)
 
+# Set up library to link to 
 find_library(MAGNUM_IMGUI_LIB MagnumImGui)
 find_library(IMGUI_LIB ImGui)
-
-set(VIS_LIBS WaveGrid
-  ${MAGNUM_IMGUI_LIB}
-  ${IMGUI_LIB}
-  drawables
+set(VIS_LIBS 
   Magnum::MeshTools
   Magnum::Primitives
   Magnum::Application
   Magnum::Magnum
   Magnum::Shaders
-  Magnum::SceneGraph)
+  Magnum::SceneGraph
+  WaveGrid
+  ${MAGNUM_IMGUI_LIB}
+  ${IMGUI_LIB}
+  Drawables
+  WaterSurface
+  SceneBase3D)
 
-add_executable(MyApplication MyApplication.cpp WaterSurfaceShader.cpp WaterSurfaceMesh.cpp ${WaterSurfaceShaders_RCS})
-target_link_libraries(MyApplication ${VIS_LIBS})
+#  _____  _    ____   ____ _____ _____ ____  
+# |_   _|/ \  |  _ \ / ___| ____|_   _/ ___| 
+#   | | / _ \ | |_) | |  _|  _|   | | \___ \ 
+#   | |/ ___ \|  _ <| |_| | |___  | |  ___) |
+#   |_/_/   \_\_| \_\\____|_____| |_| |____/ 
+#                                           
 
-add_executable(ProfileVisualization ProfileVisualization.cpp )
-target_link_libraries(ProfileVisualization ${VIS_LIBS})
+corrade_add_resource(WaterSurfaceShaders_RCS waterSurface/resources.conf)
 
+# Build Demo
+add_executable(Demo Demo.cpp ${WaterSurfaceShaders_RCS})
+target_link_libraries(Demo ${VIS_LIBS})
 
+# Build Profile Visualizer
+# add_executable(ProfileVisualization ProfileVisualization.cpp )
+# target_link_libraries(ProfileVisualization ${VIS_LIBS})
 
 
 

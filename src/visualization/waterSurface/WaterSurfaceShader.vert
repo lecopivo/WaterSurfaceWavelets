@@ -1,3 +1,10 @@
+// The final shader is in several files and the final version is stitched together in the constructor of the class WaterSurfaceShader. This is because GLSL does not provide #include directive
+//
+// The final vertex shader contain:
+// #include "DirectionNumber.h"
+// #define VERTEX_SHADER
+// #include "WaterSurfaceShader.glsl"
+
 uniform highp mat4 transformationMatrix;
 uniform highp mat4 projectionMatrix;
 uniform mediump mat3 normalMatrix;
@@ -17,7 +24,7 @@ void main() {
 
   p += wavePosition(p);
   vec3 normal = vec3(0.0,0.0,1.0);
-  
+
   /* Transformed vertex position */
   highp vec4 transformedPosition4 = transformationMatrix*vec4(p.x,p.y,p.z,1);
   highp vec3 transformedPosition = transformedPosition4.xyz/transformedPosition4.w;
@@ -36,6 +43,7 @@ void main() {
 
   pos = position.xyz/position.w;
 
+  /* Pass amplitudes to fragment shader */
   for(int i=0;i<NUM;i++){
     ampl[i] = amplitude[i];
   }

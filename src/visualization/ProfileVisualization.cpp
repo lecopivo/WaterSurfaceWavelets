@@ -27,7 +27,7 @@
 #include <iostream>
 #include <tuple>
 
-#include "drawables/VisualizationPrimitives.h"
+#include "drawables/Primitives3D.h"
 
 #include "../WaveGrid.h"
 #include "../math/ArrayAlgebra.h"
@@ -109,9 +109,9 @@ private:
   MagnumImGui _gui;
 
   // Example objects to draw
-  DrawablePlane *             plane;
-  DrawableSphere *            sphere;
-  std::vector<DrawableLine *> lines;
+  Drawables::Plane *             plane;
+  Drawables::Sphere *            sphere;
+  std::vector<Drawable::Line *> lines;
 
   // Stokes wave
   float logdt          = -2.0;

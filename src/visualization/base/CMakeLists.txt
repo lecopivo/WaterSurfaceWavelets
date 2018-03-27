@@ -1,1 +1,1 @@
-# My code completion(RTags) require a presence of CMakeLists.txt - that is why the file is here
+add_library(SceneBase3D SceneBase3D.cpp)
