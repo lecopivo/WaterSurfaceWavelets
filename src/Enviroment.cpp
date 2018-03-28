@@ -4,13 +4,13 @@
 
 namespace WaterWavelets {
 
-bool Enviroment::inDomain(Vec2 pos) const { return levelset(pos) >= 0; }
+bool Environment::inDomain(Vec2 pos) const { return levelset(pos) >= 0; }
 
-Real Enviroment::levelset(Vec2 pos) const {
+Real Environment::levelset(Vec2 pos) const {
   return norm(pos - islandCenter) - islandRadius;
 }
 
-Vec2 Enviroment::levelsetGrad(Vec2 pos) const {
+Vec2 Environment::levelsetGrad(Vec2 pos) const {
   Vec2 x = pos - islandCenter;
   return normalized(x);
 }

@@ -4,7 +4,7 @@
 
 namespace WaterWavelets {
 
-class Enviroment {
+class Environment {
 public:
   bool inDomain(Vec2 pos) const;
   Real levelset(Vec2  pos) const;
@@ -16,3 +16,4 @@ public:
 };
 
 } // namespace WaterWavelets
+
