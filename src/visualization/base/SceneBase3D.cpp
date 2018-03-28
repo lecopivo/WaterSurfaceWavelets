@@ -9,12 +9,14 @@ SceneBase3D::SceneBase3D(const Arguments &arguments)
                                 .setTitle("SceneBase3D")
                                 .setWindowFlags(Sdl2Application::Configuration::
                                                     WindowFlag::Resizable)
-                                .setSize({1200, 800})},
+                                .setSize({1200, 800})
+                                .setSampleCount(8)},
       _camera(_scene) {
 
   /* Configure OpenGL state */
   Renderer::enable(Renderer::Feature::DepthTest);
   Renderer::enable(Renderer::Feature::FaceCulling);
+  Renderer::enable(Renderer::Feature::Multisampling);
 
   /* Configure camera */
   viewportEvent(defaultFramebuffer.viewport().size()); // set up camera

@@ -11,7 +11,7 @@ namespace Shaders {
 
 WaterSurfaceShader::WaterSurfaceShader() {
 
-  Utility::Resource rs("data");
+  Utility::Resource rs("WaterSurface");
 
   Shader vert{Version::GL330, Shader::Type::Vertex},
       frag{Version::GL330, Shader::Type::Fragment};

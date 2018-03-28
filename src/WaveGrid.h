@@ -81,13 +81,15 @@ public:
   WaveGrid(Settings s);
 
   /** @brief Preform one time step.
+   * @param dt time step
+   * @param fullUpdate If true preform standard time step. If false, update only profile buffers.
    *
    * One time step consists of doing an advection step, diffusion step and
    * computation of profile buffers.
    *
    * To choose a reasonable dt we provide function @ref cflTimeStep()
    */
-  void timeStep(const Real dt);
+  void timeStep(const Real dt, bool fullUpdate =true);
 
   /**
    * @brief Position and normal of water surface

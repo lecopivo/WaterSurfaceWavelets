@@ -9,7 +9,7 @@ constexpr int pos_modulo(int n, int d) { return (n % d + d) % d; }
 
 constexpr Real tau = 6.28318530718; // https://tauday.com/tau-manifesto
 
-  WaveGrid::WaveGrid(Settings s) : m_spectrum(10) {
+  WaveGrid::WaveGrid(Settings s) : m_spectrum(10),m_enviroment(s.size) {
 
   m_amplitude.resize(s.n_x, s.n_x, s.n_theta, s.n_zeta);
   m_newAmplitude.resize(s.n_x, s.n_x, s.n_theta, s.n_zeta);
@@ -31,9 +31,11 @@ constexpr Real tau = 6.28318530718; // https://tauday.com/tau-manifesto
   precomputeGroupSpeeds();
 }
 
-void WaveGrid::timeStep(const Real dt) {
-  advectionStep(dt);
-  diffusionStep(dt);
+void WaveGrid::timeStep(const Real dt, bool fullUpdate) {
+  if (fullUpdate) {
+    advectionStep(dt);
+    diffusionStep(dt);
+  }
   precomputeProfileBuffers();
   m_time += dt;
 }
@@ -245,7 +247,7 @@ void WaveGrid::diffusionStep(const Real dt) {
           Real gamma = 0.025 * groupSpeed(izeta) * dt * m_idx[X];
 
           // do diffusion only if you are 2 grid nodes away from boudnary
-          if (ls >= 2 * dx(X)) {
+          if (ls >= 4 * dx(X)) {
             m_newAmplitude(ix, iy, itheta, izeta) =
                 (1 - gamma) * grid(ix, iy, itheta, izeta) +
                 gamma * 0.5 *
@@ -295,7 +297,8 @@ void WaveGrid::precomputeGroupSpeeds() {
       return {cg * density, density};
     });
 
-    m_groupSpeeds[izeta] = 4 * result[0] / result[1];
+    m_groupSpeeds[izeta] =
+        3 /*the 3 should not be here !!!*/ * result[0] / result[1];
   }
 }
 
@@ -363,7 +366,7 @@ Vec2 WaveGrid::groupVelocity(Vec4 pos4) const {
 }
 
 Real WaveGrid::defaultAmplitude(const int itheta, const int izeta) const {
-  if (itheta == 0 || itheta == gridDim(Theta) - 1)
+  if (itheta == 5 * gridDim(Theta) / 16)
     return 0.1;
   return 0.0;
 }

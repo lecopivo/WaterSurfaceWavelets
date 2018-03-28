@@ -27,7 +27,8 @@ void main() {
   lowp vec4 finalSpecularColor = vec4(1.0,1.0,1.0,1.0);
   lowp vec4 lightColor = vec4(1.0,1.0,1.0,1.0);
 
-  // finalDiffuseColor.rgb += waveColor(pos);
+  if(pos.x < -50 || pos.x > 50 || pos.y<-50 || pos.y>50)
+    finalDiffuseColor.rgb = vec3(0.6,0.6,0.6);
 
   /* Ambient color */
   fragmentColor = finalAmbientColor;
@@ -41,11 +42,11 @@ void main() {
 
   /* Add specular color, if needed */
   if(intensity > 0.001) {
+    vec3 ref = reflect(normalize(cameraDirection),normalizedTransformedNormal);
+    highp float sky = max(0,pow((1-abs(dot(normalize(cameraDirection),normalizedTransformedNormal))),2)*sin(20*ref.x)*sin(20*ref.y)*sin(20*ref.z));
     highp vec3 reflection = reflect(-normalizedLightDirection, normalizedTransformedNormal);
     highp float shininess = 80.0;
     mediump float specularity = pow(max(0.0, dot(normalize(cameraDirection), reflection)), shininess);
-    fragmentColor += finalSpecularColor*specularity;
+    fragmentColor += finalSpecularColor*specularity + sky*vec4(1,1,1,1);
   }
-
-  //fragmentColor = vec4(1.0,0.0,0.0,1.0);
 }
