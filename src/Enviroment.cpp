@@ -10,7 +10,7 @@
 
 namespace WaterWavelets {
 
-auto &raw_data = harbor_data;
+auto &raw_data = island_data;
 
 const int N = sqrt(raw_data.size());
 

@@ -1,4 +1,4 @@
-const int NUM_INTEGRATION_NODES = 16*DIR_NUM;
+const int NUM_INTEGRATION_NODES = 4*DIR_NUM;
 
 uniform sampler1D profileData;
 uniform sampler3D amplitudeData;
