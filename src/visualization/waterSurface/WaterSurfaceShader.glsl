@@ -1,43 +1,24 @@
-const int NUM = DIR_NUM/4;
-const int NUM_INTEGRATION_NODES = 8*DIR_NUM;
+const int NUM_INTEGRATION_NODES = 16*DIR_NUM;
 
-uniform sampler1D textureData;
+uniform sampler1D profileData;
+uniform sampler3D amplitudeData;
 uniform float profilePeriod;
-
-// Define getAmpl for vertex shader
-#if VERTEX_SHADER
-layout(location = 1) in highp vec4 amplitude[NUM];
-
-float Ampl(int i){
-  i = i%DIR_NUM;
-  return amplitude[i/4][i%4];
-}
-#endif
-
-// Define getAmpl for fragment shader
-#if FRAGMENT_SHADER
-in highp vec4 ampl[NUM];
-
-float Ampl(int i){
-  i = i%DIR_NUM;
-  return ampl[i/4][i%4];
-
-}
-#endif
+uniform float domainSize;
+uniform int directionNumber;
 
 const float tau = 6.28318530718;
 
-float iAmpl( float angle/*in [0,2pi]*/){
-  float a = DIR_NUM*angle/tau + DIR_NUM - 0.5;
-  int ia = int(floor(a));
-  float w = a-ia;
-  return (1-w)*Ampl(ia%DIR_NUM)+w*Ampl((ia+1)%DIR_NUM);
+vec2 positionUV(vec3 pos){
+  pos += vec3(domainSize,domainSize,0);
+  pos *= 1/(2*domainSize);
+  return vec2(pos.x,pos.y);
 }
 
 int seed = 40234324;
 
 vec3 wavePosition(vec3 p){
 
+  vec2 uv = positionUV(p);
   vec3 result = vec3(0.0,0.0,0.0);
 
   const int N = NUM_INTEGRATION_NODES;
@@ -50,7 +31,8 @@ vec3 wavePosition(vec3 p){
     float kdir_x = dot(p.xy,kdir)+tau*sin(seed*a);
     float w = kdir_x/profilePeriod;
 
-    vec4 tt = dx*iAmpl(angle)*texture(textureData,w);
+    vec3 pos3 = vec3(uv.x,uv.y,a);
+    vec4 tt = dx*texture(amplitudeData,pos3).r*texture(profileData,w);
 
     result.xy += kdir*tt.x;
     result.z += tt.y;
@@ -61,6 +43,7 @@ vec3 wavePosition(vec3 p){
 
 vec3 waveNormal(vec3 p){
 
+  vec2 uv = positionUV(p);
   vec3 tx = vec3(1.0,0.0,0.0);
   vec3 ty = vec3(0.0,1.0,0.0);  
 
@@ -74,7 +57,8 @@ vec3 waveNormal(vec3 p){
     float kdir_x = dot(p.xy,kdir)+tau*sin(seed*a);
     float w = kdir_x/profilePeriod;
 
-    vec4 tt = dx*iAmpl(angle)*texture(textureData,w);
+    vec3 pos3 = vec3(uv.x,uv.y,a);
+    vec4 tt = dx*texture(amplitudeData,pos3).r*texture(profileData,w);
 
     tx.xz += kdir.x*tt.zw;
     ty.yz += kdir.y*tt.zw;

@@ -50,38 +50,38 @@ public:
     return *this;
   }
 
-  WaterSurfaceShader &setTime(const Float &time) {
-    setUniform(_timeUniform, time);
-    return *this;
-  }
-
   WaterSurfaceShader &setProfilePeriod(const Float &profilePeriod) {
     setUniform(_profilePeriodUniform, profilePeriod);
     return *this;
   }
 
-  WaterSurfaceShader &setGerstnerParameter(const Float &gerstnerParameter) {
-    setUniform(_gerstnerParameterUniform, gerstnerParameter);
+  WaterSurfaceShader &setDomainSize(const Float &size) {
+    setUniform(_domainSizeUniform, size);
     return *this;
   }
 
-  WaterSurfaceShader &setWaveDirectionToShow(const int &direction) {
-    setUniform(_waveDirectionToShowUniform, direction);
+  WaterSurfaceShader &setDirectionNumber(const Int &dir_num) {
+    setUniform(_directionNumberUniform, dir_num);
     return *this;
   }
 
-  WaterSurfaceShader &bindTexture(Texture1D &texture) {
-    texture.bind(TextureLayer);
+  WaterSurfaceShader &bindProfileTexture(Texture1D &texture) {
+    texture.bind(ProfileTextureLayer);
+    return *this;
+  }
+
+  WaterSurfaceShader &bindAmplitudeTexture(Texture3D &texture) {
+    texture.bind(AmplitudeTextureLayer);
     return *this;
   }
 
 private:
-  enum : Int { TextureLayer = 0 };
+  enum : Int { ProfileTextureLayer = 0, AmplitudeTextureLayer = 1 };
 
   Int _lightPositionUniform, _ambientColorUniform, _colorUniform,
       _transformationMatrixUniform, _normalMatrixUniform,
-      _projectionMatrixUniform, _timeUniform, _profilePeriodUniform,
-    _gerstnerParameterUniform,_waveDirectionToShowUniform;
+      _projectionMatrixUniform, _profilePeriodUniform, _domainSizeUniform,
+      _directionNumberUniform;
 };
 
 } // namespace Shaders

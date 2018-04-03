@@ -57,36 +57,28 @@ public:
   void update() override {
 
     // Load amplitude data from simulation to visualization grid
-    if (update_screen_grid) {
-      _water_surface->setVertices([&](int i, WaterSurfaceMesh::VertexData &v) {
+    _water_surface->setVertices([&](int i, WaterSurfaceMesh::VertexData &v) {
 
-        int     ix        = i / (visGridResolution + 1);
-        int     iy        = i % (visGridResolution + 1);
-        Vector2 screenPos = Vector2{(2.0f * ix) / visGridResolution - 1.0f,
-                                    (2.0f * iy) / visGridResolution - 1.0f};
+      int     ix        = i / (visGridResolution + 1);
+      int     iy        = i % (visGridResolution + 1);
+      Vector2 screenPos = Vector2{(2.0f * ix) / visGridResolution - 1.0f,
+                                  (2.0f * iy) / visGridResolution - 1.0f};
 
-        auto[dir, camPos] = _camera.cameraRayCast(screenPos);
-        dir               = dir.normalized();
-        float t           = -camPos.z() / dir.z();
-        t                 = t < 0 ? 1000 : t;
-        v.position        = camPos + t * dir;
-        v.position.z()    = 0;
-
-        for (int itheta = 0; itheta < DIR_NUM; itheta++) {
-          float theta = _waveGrid.idxToPos(itheta, WaveGrid::Theta);
-          Vec4  pos4{v.position.x(), v.position.y(), theta,
-                    _waveGrid.idxToPos(0, WaveGrid::Zeta)};
-          if (directionToShow == -1 || directionToShow == itheta)
-            v.amplitude[itheta] = amplitudeMult * _waveGrid.amplitude(pos4);
-          else
-            v.amplitude[itheta] = 0;
-        }
-      });
-    }
+      auto[dir, camPos] = _camera.cameraRayCast(screenPos);
+      dir               = dir.normalized();
+      float t           = -camPos.z() / dir.z();
+      t                 = t < 0 ? 1000 : t;
+      v.position        = camPos + t * dir;
+      v.position.z()    = 0;
+    });
 
     // Load profile data from simulation to visualization grid
     _water_surface->loadProfile(_waveGrid.m_profileBuffers[0]);
 
+    if (update_screen_grid) {
+      // load amplitude testure
+      _water_surface->loadAmplitude(_waveGrid);
+    }
     // Time step of simulation
     _waveGrid.timeStep(_waveGrid.cflTimeStep() * pow(10, logdt),
                        update_screen_grid);
@@ -109,7 +101,7 @@ public:
     ImGui::SliderFloat("log(dt)", &logdt, -2, 2);
     ImGui::DragFloat("time", &_waveGrid.m_time);
     ImGui::Checkbox("update screen grid", &update_screen_grid);
-    if(ImGui::Button("Reset")){
+    if (ImGui::Button("Reset")) {
       _waveGrid = WaveGrid(settings);
     }
     static bool triangulation = false;

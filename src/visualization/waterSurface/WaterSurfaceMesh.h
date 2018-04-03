@@ -31,21 +31,22 @@
 
 #include <iostream>
 
+#include "../../ProfileBuffer.h"
+#include "../../WaveGrid.h"
 #include "../base/SceneBase3D.h"
 #include "WaterSurfaceShader.h"
-#include "../../ProfileBuffer.h"
 
 namespace Magnum {
 
-class WaterSurfaceMesh : public SceneBase3D::Object3D, public SceneGraph::Drawable3D {
+class WaterSurfaceMesh : public SceneBase3D::Object3D,
+                         public SceneGraph::Drawable3D {
 public:
   struct VertexData {
-    Vector3                      position;
-    Math::Vector<DIR_NUM, Float> amplitude;
+    Vector3 position;
   };
 
 public:
-  explicit WaterSurfaceMesh(SceneBase3D::Object3D *                   parent,
+  explicit WaterSurfaceMesh(SceneBase3D::Object3D *      parent,
                             SceneGraph::DrawableGroup3D *group, int n);
 
 public:
@@ -56,16 +57,14 @@ public:
     for (size_t i = 0; i < _data.size(); i++) {
       fun(i, _data[i]);
     }
-    bindBuffers(_data);
+
+    _vertexBuffer.setData(_data, BufferUsage::DynamicDraw);
   }
 
-  void loadProfile(WaterWavelets::ProfileBuffer const& profileBuffer);
+  void loadProfile(WaterWavelets::ProfileBuffer const &profileBuffer);
+  void loadAmplitude(WaterWavelets::WaveGrid const &grid);
 
   void showTriangulationToggle();
-
-protected:
-  void bindBuffers(std::vector<VertexData> const &data);
-  void bindTexture();
 
 private:
   void draw(const Matrix4 &       transformationMatrix,
@@ -74,7 +73,7 @@ private:
 public:
   Mesh   _mesh;
   Buffer _vertexBuffer, _indexBuffer;
-  bool _showTriangulation = false;
+  bool   _showTriangulation = false;
 
   Shaders::WaterSurfaceShader _shader;
 
@@ -82,6 +81,7 @@ public:
   std::vector<UnsignedInt> _indices;
 
   Texture1D _profileTexture;
+  Texture3D _amplitudeTexture;
 };
 
 } // namespace Magnum

@@ -21,7 +21,7 @@ public:
 
   int dimension(int dim) const;
 
-private:
+public:
   std::vector<Real>  m_data;
   std::array<int, 4> m_dimensions;
 };

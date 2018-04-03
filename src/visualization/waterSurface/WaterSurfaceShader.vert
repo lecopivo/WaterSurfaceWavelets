@@ -17,7 +17,6 @@ out mediump vec3 transformedNormal;
 out highp vec3 lightDirection;
 out highp vec3 cameraDirection;
 out highp vec3 pos;
-out highp vec4 ampl[NUM];
 
 void main() {
   highp vec3 p = position.xyz/position.w;
@@ -42,9 +41,4 @@ void main() {
   gl_Position = projectionMatrix*transformedPosition4;
 
   pos = position.xyz/position.w;
-
-  /* Pass amplitudes to fragment shader */
-  for(int i=0;i<NUM;i++){
-    ampl[i] = amplitude[i];
-  }
 }

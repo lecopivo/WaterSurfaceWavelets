@@ -35,12 +35,12 @@ WaterSurfaceShader::WaterSurfaceShader() {
   _transformationMatrixUniform = uniformLocation("transformationMatrix");
   _projectionMatrixUniform     = uniformLocation("projectionMatrix");
   _normalMatrixUniform         = uniformLocation("normalMatrix");
-  _timeUniform                 = uniformLocation("time");
   _profilePeriodUniform        = uniformLocation("profilePeriod");
-  _gerstnerParameterUniform    = uniformLocation("gerstnerParameter");
-  _waveDirectionToShowUniform  = uniformLocation("waveDirectionToShow");
+  _domainSizeUniform           = uniformLocation("domainSize");
+  _directionNumberUniform      = uniformLocation("directionNumber");
 
-  setUniform(uniformLocation("textureData"), TextureLayer);
+  setUniform(uniformLocation("profileData"), ProfileTextureLayer);
+  setUniform(uniformLocation("amplitudeData"), AmplitudeTextureLayer);
 }
 
 } // namespace Shaders

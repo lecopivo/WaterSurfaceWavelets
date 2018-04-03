@@ -6,31 +6,14 @@ namespace Magnum {
 
 using namespace Magnum::Math::Literals;
 
-template <typename Mesh, typename Buffer, size_t... I>
-void addVertexBuffer(Mesh &mesh, Buffer &buffer, std::index_sequence<I...>) {
-
-  using Shader = Shaders::WaterSurfaceShader;
-
-  mesh.addVertexBuffer(buffer, 0, Shader::Position{},
-                       Shader::Amplitude<I>{}...);
-}
-
-WaterSurfaceMesh::WaterSurfaceMesh(SceneBase3D::Object3D *                   parent,
+WaterSurfaceMesh::WaterSurfaceMesh(SceneBase3D::Object3D *      parent,
                                    SceneGraph::DrawableGroup3D *group, int n)
     : SceneBase3D::Object3D{parent}, SceneGraph::Drawable3D{*this, group} {
 
+  using Shader = Shaders::WaterSurfaceShader;
+
   _shader.setColor(Color4{0.4f, 0.4f, 0.8f, 1.f})
-      .setAmbientColor(Color3{0.25f, 0.2f, 0.23f})
-      .setTime(0)
-      .setGerstnerParameter(1)
-      .setWaveDirectionToShow(-1);
-
-  _mesh.setPrimitive(MeshPrimitive::Triangles)
-      .setCount(_indices.size())
-      .setIndexBuffer(_indexBuffer, 0, Mesh::IndexType::UnsignedInt);
-
-  addVertexBuffer(_mesh, _vertexBuffer,
-                  std::make_index_sequence<DIR_NUM / 4>{});
+      .setAmbientColor(Color3{0.25f, 0.2f, 0.23f});
 
   int   nx = n;
   int   ny = n;
@@ -42,8 +25,6 @@ WaterSurfaceMesh::WaterSurfaceMesh(SceneBase3D::Object3D *                   par
     for (int j = 0; j <= ny; j++) {
       VertexData vertex;
       vertex.position = Vector3{-1.0f + i * dx, -1.0f + j * dy, 0.0f};
-      for (int k = 0; k < DIR_NUM; k++)
-        vertex.amplitude[k] = 0;
       _data.push_back(vertex);
     }
   }
@@ -66,7 +47,13 @@ WaterSurfaceMesh::WaterSurfaceMesh(SceneBase3D::Object3D *                   par
     }
   }
 
-  bindBuffers(_data);
+  _vertexBuffer.setData(_data, BufferUsage::DynamicDraw);
+  _indexBuffer.setData(_indices, BufferUsage::StaticDraw);
+
+  _mesh.setPrimitive(MeshPrimitive::Triangles)
+      .setCount(_indices.size())
+      .addVertexBuffer(_vertexBuffer, 0, Shader::Position{})
+      .setIndexBuffer(_indexBuffer, 0, Mesh::IndexType::UnsignedInt);
 }
 
 void WaterSurfaceMesh::loadProfile(
@@ -76,8 +63,8 @@ void WaterSurfaceMesh::loadProfile(
                                          profileBuffer.m_data.size() *
                                              sizeof(std::array<float, 4>));
 
-  ImageView1D image(PixelFormat::RGBA, PixelType::Float, profileBuffer.m_data.size(),
-                    data);
+  ImageView1D image(PixelFormat::RGBA, PixelType::Float,
+                    profileBuffer.m_data.size(), data);
 
   _profileTexture.setWrapping(Sampler::Wrapping::Repeat)
       .setMagnificationFilter(Sampler::Filter::Linear)
@@ -85,18 +72,49 @@ void WaterSurfaceMesh::loadProfile(
       .setStorage(1, TextureFormat::RGBA32F, profileBuffer.m_data.size())
       .setSubImage(0, {}, image);
 
-  _shader.bindTexture(_profileTexture).setProfilePeriod(profileBuffer.m_period);
+  _shader.bindProfileTexture(_profileTexture)
+      .setProfilePeriod(profileBuffer.m_period);
+}
+
+void WaterSurfaceMesh::loadAmplitude(WaterWavelets::WaveGrid const &grid) {
+
+  Vector3i size = {grid.gridDim(0), grid.gridDim(1), grid.gridDim(2)};
+
+  std::vector<float> rawData(size[0] * size[1] * size[2]);
+
+  for (int k = 0; k < grid.gridDim(2); k++) {
+    for (int j = 0; j < grid.gridDim(1); j++) {
+      for (int i = 0; i < grid.gridDim(0); i++) {
+        rawData[i + j * size[0] + k * size[0] * size[1]] =
+            10 * grid.m_amplitude(i, j, k, 0);
+      }
+    }
+  }
+
+  assert(grid.gridDim(3) ==
+         1); // Right now this works only for discretization in one wave number
+
+  Containers::ArrayView<const void> data(
+      rawData.data(), size[0] * size[1] * size[2] * sizeof(float));
+
+  ImageView3D image(PixelFormat::Red, PixelType::Float, size, data);
+
+  _amplitudeTexture
+      .setWrapping({Sampler::Wrapping::ClampToBorder,
+                    Sampler::Wrapping::ClampToBorder,
+                    Sampler::Wrapping::Repeat})
+      .setMagnificationFilter(Sampler::Filter::Linear)
+      .setMinificationFilter(Sampler::Filter::Linear)
+      .setStorage(1, TextureFormat::R32F, size)
+      .setSubImage(0, {}, image);
+
+  _shader.bindAmplitudeTexture(_amplitudeTexture)
+      .setDomainSize(grid.m_xmax[0])
+      .setDirectionNumber(grid.gridDim(2));
 }
 
 void WaterSurfaceMesh::showTriangulationToggle() {
   _showTriangulation = !_showTriangulation;
-}
-
-void WaterSurfaceMesh::bindBuffers(std::vector<VertexData> const &data) {
-
-  _vertexBuffer.setData(data, BufferUsage::DynamicDraw);
-  _indexBuffer.setData(_indices, BufferUsage::StaticDraw);
-  _mesh.setCount(_indices.size());
 }
 
 void WaterSurfaceMesh::draw(const Matrix4 &       transformationMatrix,
