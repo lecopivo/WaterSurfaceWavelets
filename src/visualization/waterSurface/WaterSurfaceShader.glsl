@@ -34,6 +34,8 @@ float iAmpl( float angle/*in [0,2pi]*/){
   return (1-w)*Ampl(ia%DIR_NUM)+w*Ampl((ia+1)%DIR_NUM);
 }
 
+int seed = 40234324;
+
 vec3 wavePosition(vec3 p){
 
   vec3 result = vec3(0.0,0.0,0.0);
@@ -45,7 +47,7 @@ vec3 wavePosition(vec3 p){
 
     float angle = a*tau;
     vec2 kdir = vec2(cos(angle),sin(angle));
-    float kdir_x = dot(p.xy,kdir)+tau*sin(102*a);
+    float kdir_x = dot(p.xy,kdir)+tau*sin(seed*a);
     float w = kdir_x/profilePeriod;
 
     vec4 tt = dx*iAmpl(angle)*texture(textureData,w);
@@ -69,7 +71,7 @@ vec3 waveNormal(vec3 p){
 
     float angle = a*tau;
     vec2 kdir = vec2(cos(angle),sin(angle));
-    float kdir_x = dot(p.xy,kdir)+tau*sin(102*a);
+    float kdir_x = dot(p.xy,kdir)+tau*sin(seed*a);
     float w = kdir_x/profilePeriod;
 
     vec4 tt = dx*iAmpl(angle)*texture(textureData,w);

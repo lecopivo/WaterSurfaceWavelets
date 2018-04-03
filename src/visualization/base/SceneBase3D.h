@@ -41,7 +41,7 @@ public:
 
   virtual ~SceneBase3D(){};
 
-protected:
+public:
   void drawEvent() final;
 
   virtual void update();

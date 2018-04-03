@@ -43,7 +43,7 @@ void main() {
   /* Add specular color, if needed */
   if(intensity > 0.001) {
     vec3 ref = reflect(normalize(cameraDirection),normalizedTransformedNormal);
-    highp float sky = max(0,pow((1-abs(dot(normalize(cameraDirection),normalizedTransformedNormal))),2)*sin(20*ref.x)*sin(20*ref.y)*sin(20*ref.z));
+    highp float sky = max(0,pow((1-abs(dot(normalize(cameraDirection),normalizedTransformedNormal))),1)*sin(20*ref.x)*sin(20*ref.y)*sin(20*ref.z));
     highp vec3 reflection = reflect(-normalizedLightDirection, normalizedTransformedNormal);
     highp float shininess = 80.0;
     mediump float specularity = pow(max(0.0, dot(normalize(cameraDirection), reflection)), shininess);

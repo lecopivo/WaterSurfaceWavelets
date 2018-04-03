@@ -10,17 +10,17 @@
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
 NotebookDataPosition[       158,          7]
-NotebookDataLength[      5507,        156]
-NotebookOptionsPosition[      4922,        140]
-NotebookOutlinePosition[      5262,        155]
-CellTagsIndexPosition[      5219,        152]
+NotebookDataLength[      5054,        145]
+NotebookOptionsPosition[      4665,        131]
+NotebookOutlinePosition[      5005,        146]
+CellTagsIndexPosition[      4962,        143]
 WindowFrame->Normal*)
 
 (* Beginning of Notebook Content *)
 Notebook[{
 Cell[BoxData[{
  RowBox[{
-  RowBox[{"name", " ", "=", " ", "\"\<harbor\>\""}], 
+  RowBox[{"name", " ", "=", " ", "\"\<island\>\""}], 
   ";"}], "\[IndentingNewLine]", 
  RowBox[{
   RowBox[{"img", "=", 
@@ -97,19 +97,10 @@ Cell[BoxData[{
   3.731152482811363*^9, 3.731152483094492*^9}, {3.731152519862794*^9, 
   3.731152522466228*^9}, {3.731152634838724*^9, 3.731152776059433*^9}, {
   3.731152895078721*^9, 3.731152924009446*^9}, {3.7311529869439697`*^9, 
-  3.7311529888417377`*^9}, {3.731212219044613*^9, 
-  3.731212221970892*^9}},ExpressionUUID->"1e3c6528-acbf-45fe-838d-\
+  3.7311529888417377`*^9}, {3.731212219044613*^9, 3.731212221970892*^9}, {
+  3.731228880490293*^9, 
+  3.73122888176291*^9}},ExpressionUUID->"1e3c6528-acbf-45fe-838d-\
 451d2661b900"],
-
-Cell[BoxData[""], "Input",
- CellChangeTimes->{{3.7312122779176702`*^9, 
-  3.731212278033738*^9}},ExpressionUUID->"c743adac-0af9-40be-aa0c-\
-e470f83965e9"],
-
-Cell[BoxData["\[AliasDelimiter]"], "Input",
- CellChangeTimes->{
-  3.731212276212582*^9},ExpressionUUID->"9e422781-86fb-4d9b-bc91-\
-5840806e3c80"],
 
 Cell[BoxData[
  RowBox[{"\[IndentingNewLine]", "\[IndentingNewLine]", "\[IndentingNewLine]", 
@@ -139,7 +130,7 @@ Cell[BoxData[
 fbe1623abd99"]
 },
 WindowSize->{808, 915},
-WindowMargins->{{103, Automatic}, {86, Automatic}},
+WindowMargins->{{475, Automatic}, {61, Automatic}},
 FrontEndVersion->"11.2 for Linux x86 (64-bit) (September 10, 2017)",
 StyleDefinitions->"Default.nb"
 ]
@@ -154,10 +145,8 @@ CellTagsIndex->{}
 *)
 (*NotebookFileOutline
 Notebook[{
-Cell[558, 20, 3013, 81, 216, "Input",ExpressionUUID->"1e3c6528-acbf-45fe-838d-451d2661b900"],
-Cell[3574, 103, 154, 3, 64, InheritFromParent,ExpressionUUID->"c743adac-0af9-40be-aa0c-e470f83965e9"],
-Cell[3731, 108, 145, 3, 31, "Input",ExpressionUUID->"9e422781-86fb-4d9b-bc91-5840806e3c80"],
-Cell[3879, 113, 1039, 25, 147, "Input",ExpressionUUID->"765efb90-261b-499d-8a64-fbe1623abd99"]
+Cell[558, 20, 3061, 82, 216, "Input",ExpressionUUID->"1e3c6528-acbf-45fe-838d-451d2661b900"],
+Cell[3622, 104, 1039, 25, 147, "Input",ExpressionUUID->"765efb90-261b-499d-8a64-fbe1623abd99"]
 }
 ]
 *)

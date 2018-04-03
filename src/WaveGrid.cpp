@@ -244,7 +244,7 @@ void WaveGrid::diffusionStep(const Real dt) {
         for (int izeta = 0; izeta < gridDim(Zeta); izeta++) {
 
           Vec4 pos4  = idxToPos({ix, iy, itheta, izeta});
-          Real gamma = 0.025 * groupSpeed(izeta) * dt * m_idx[X];
+          Real gamma = 2*0.025 * groupSpeed(izeta) * dt * m_idx[X];
 
           // do diffusion only if you are 2 grid nodes away from boudnary
           if (ls >= 4 * dx(X)) {

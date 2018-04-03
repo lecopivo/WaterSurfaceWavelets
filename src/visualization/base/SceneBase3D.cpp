@@ -10,7 +10,7 @@ SceneBase3D::SceneBase3D(const Arguments &arguments)
                                 .setWindowFlags(Sdl2Application::Configuration::
                                                     WindowFlag::Resizable)
                                 .setSize({1200, 800})
-                                .setSampleCount(8)},
+                                .setSampleCount(16)},
       _camera(_scene) {
 
   /* Configure OpenGL state */

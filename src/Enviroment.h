@@ -7,13 +7,13 @@ namespace WaterWavelets {
 class Environment {
 public:
   Environment(float size);
-  
+
   bool inDomain(Vec2 pos) const;
-  Real levelset(Vec2  pos) const;
+  Real levelset(Vec2 pos) const;
   Vec2 levelsetGrad(Vec2 pos) const;
+
 public:
-  const float _dx;
+  float _dx;
 };
 
 } // namespace WaterWavelets
-

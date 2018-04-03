@@ -32,7 +32,7 @@ auto settings = []() { // this use of lambda is basically emulating Designated
 int   visGridResolution  = 100;
 float amplitudeMult      = 4.0;
 bool  update_screen_grid = true;
-float logdt              = -0.5;
+float logdt              = -0.9;
 int   directionToShow    = -1;
 
 class Scene3D : public SceneBase3D {
@@ -94,9 +94,9 @@ public:
     auto[dir, camPos] = _camera.cameraRayCast(
         _previousMousePosition, defaultFramebuffer.viewport().size());
 
-    float t = -camPos.z()/dir.z();
-    Vector3 pos = camPos + t * dir;
-    _waveGrid.addPointDisturbance({pos[0],pos[1]}, 0.1);
+    // float t = -camPos.z()/dir.z();
+    // Vector3 pos = camPos + t * dir;
+    // _waveGrid.addPointDisturbance({pos[0],pos[1]}, 0.1);
   }
 
   void drawGui() override {
@@ -107,7 +107,11 @@ public:
     ImGui::SliderInt("direction", &directionToShow, -1, DIR_NUM - 1);
     ImGui::SliderFloat("amplitude", &amplitudeMult, 0, 20);
     ImGui::SliderFloat("log(dt)", &logdt, -2, 2);
+    ImGui::DragFloat("time", &_waveGrid.m_time);
     ImGui::Checkbox("update screen grid", &update_screen_grid);
+    if(ImGui::Button("Reset")){
+      _waveGrid = WaveGrid(settings);
+    }
     static bool triangulation = false;
     if (ImGui::Checkbox("triangulation", &triangulation)) {
       _water_surface->_showTriangulation = triangulation;

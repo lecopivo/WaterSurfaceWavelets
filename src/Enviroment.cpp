@@ -1,6 +1,7 @@
 #include "Enviroment.h"
 
 #include "data/harbor_data.cpp"
+#include "data/island_data.cpp"
 #include "math/ArrayAlgebra.h"
 #include "math/interpolation/Interpolation.h"
 
@@ -9,28 +10,30 @@
 
 namespace WaterWavelets {
 
-const int N = sqrt(harbor_data.size());
+auto &raw_data = harbor_data;
+
+const int N = sqrt(raw_data.size());
 
 auto data_grid = [](int i, int j) -> float {
   // outside of the data grid just return some high arbitrary number
   if (i < 0 || i >= N || j < 0 || j >= N)
     return 100;
 
-  return ::harbor_data[j + i * N];
+  return raw_data[j + i * N];
 };
 
 auto dx_data_grid = [](int i, int j) -> float {
   if (i < 0 || i >= (N - 1) || j < 0 || j >= N)
     return 0;
 
-  return ::harbor_data[j + (i + 1) * N] - ::harbor_data[j + i * N];
+  return raw_data[j + (i + 1) * N] - raw_data[j + i * N];
 };
 
 auto dy_data_grid = [](int i, int j) -> float {
   if (i < 0 || i >= N || j < 0 || j >= (N - 1))
     return 0;
 
-  return ::harbor_data[(j + 1) + i * N] - ::harbor_data[j + i * N];
+  return raw_data[(j + 1) + i * N] - raw_data[j + i * N];
 };
 
 auto igrid =
