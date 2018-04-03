@@ -31,7 +31,7 @@ vec3 wavePosition(vec3 p){
     float kdir_x = dot(p.xy,kdir)+tau*sin(seed*a);
     float w = kdir_x/profilePeriod;
 
-    vec3 pos3 = vec3(uv.x,uv.y,a);
+    vec3 pos3 = vec3(a,uv.y,uv.x);
     vec4 tt = dx*texture(amplitudeData,pos3).r*texture(profileData,w);
 
     result.xy += kdir*tt.x;
@@ -57,7 +57,7 @@ vec3 waveNormal(vec3 p){
     float kdir_x = dot(p.xy,kdir)+tau*sin(seed*a);
     float w = kdir_x/profilePeriod;
 
-    vec3 pos3 = vec3(uv.x,uv.y,a);
+    vec3 pos3 = vec3(a,uv.y,uv.x);
     vec4 tt = dx*texture(amplitudeData,pos3).r*texture(profileData,w);
 
     tx.xz += kdir.x*tt.zw;

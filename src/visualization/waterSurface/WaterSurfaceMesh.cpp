@@ -78,31 +78,20 @@ void WaterSurfaceMesh::loadProfile(
 
 void WaterSurfaceMesh::loadAmplitude(WaterWavelets::WaveGrid const &grid) {
 
-  Vector3i size = {grid.gridDim(0), grid.gridDim(1), grid.gridDim(2)};
-
-  std::vector<float> rawData(size[0] * size[1] * size[2]);
-
-  for (int k = 0; k < grid.gridDim(2); k++) {
-    for (int j = 0; j < grid.gridDim(1); j++) {
-      for (int i = 0; i < grid.gridDim(0); i++) {
-        rawData[i + j * size[0] + k * size[0] * size[1]] =
-            10 * grid.m_amplitude(i, j, k, 0);
-      }
-    }
-  }
+  Vector3i size = {grid.gridDim(2), grid.gridDim(1), grid.gridDim(0)};
 
   assert(grid.gridDim(3) ==
          1); // Right now this works only for discretization in one wave number
 
-  Containers::ArrayView<const void> data(
-      rawData.data(), size[0] * size[1] * size[2] * sizeof(float));
+  Containers::ArrayView<const void> data(grid.m_amplitude.m_data.data(),
+                                         size[0] * size[1] * size[2] *
+                                             sizeof(float));
 
   ImageView3D image(PixelFormat::Red, PixelType::Float, size, data);
 
   _amplitudeTexture
-      .setWrapping({Sampler::Wrapping::ClampToBorder,
-                    Sampler::Wrapping::ClampToBorder,
-                    Sampler::Wrapping::Repeat})
+      .setWrapping({Sampler::Wrapping::Repeat, Sampler::Wrapping::ClampToBorder,
+                    Sampler::Wrapping::ClampToBorder})
       .setMagnificationFilter(Sampler::Filter::Linear)
       .setMinificationFilter(Sampler::Filter::Linear)
       .setStorage(1, TextureFormat::R32F, size)

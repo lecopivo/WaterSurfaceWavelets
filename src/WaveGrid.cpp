@@ -367,7 +367,7 @@ Vec2 WaveGrid::groupVelocity(Vec4 pos4) const {
 
 Real WaveGrid::defaultAmplitude(const int itheta, const int izeta) const {
   if (itheta == 5 * gridDim(Theta) / 16)
-    return 0.1;
+    return 0.3;
   return 0.0;
 }
 
