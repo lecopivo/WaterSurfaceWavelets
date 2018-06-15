@@ -14,7 +14,15 @@ vec2 positionUV(vec3 pos){
   return vec2(pos.x,pos.y);
 }
 
-int seed = 40234324;
+// random function from https://stackoverflow.com/a/10625698
+float random( vec2 p )
+{
+    vec2 K1 = vec2(
+        23.14069263277926, // e^pi (Gelfond's constant)
+         2.665144142690225 // 2^sqrt(2) (Gelfondâ€“Schneider constant)
+    );
+    return fract( cos( dot(p,K1) ) * 12345.6789 );
+}
 
 vec3 wavePosition(vec3 p){
 
@@ -28,7 +36,7 @@ vec3 wavePosition(vec3 p){
 
     float angle = a*tau;
     vec2 kdir = vec2(cos(angle),sin(angle));
-    float kdir_x = dot(p.xy,kdir)+tau*sin(seed*a);
+    float kdir_x = dot(p.xy,kdir)+tau*random(kdir);
     float w = kdir_x/profilePeriod;
 
     vec3 pos3 = vec3(a,uv.y,uv.x);
@@ -54,7 +62,7 @@ vec3 waveNormal(vec3 p){
 
     float angle = a*tau;
     vec2 kdir = vec2(cos(angle),sin(angle));
-    float kdir_x = dot(p.xy,kdir)+tau*sin(seed*a);
+    float kdir_x = dot(p.xy,kdir)+tau*random(kdir);
     float w = kdir_x/profilePeriod;
 
     vec3 pos3 = vec3(a,uv.y,uv.x);
