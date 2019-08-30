@@ -1,30 +1,35 @@
 * Water Surface Wavelets
 
-[[file:teaser.png]]
+  [[file:img/teaser.gif]]
 
+** Installation
 
+  Download repository:
+  #+BEGIN_SRC bash
+  git clone --recursive 
+  #+END_SRC
 
+  Install prerequisites(takes couple of minutes):
+  #+BEGIN_SRC bash
+    pushd vcpkg
+    ./bootstrap-vcpkg.sh 
+    ./vcpkg install magnum-integration[imgui]
+    popd
+  #+END_SRC
 
-Install prerequisites
-#+BEGIN_SRC 
-pushd vcpkg
-./bootstrap-vcpkg.sh 
-./vcpkg install magnum magnum-integration[imgui]
-popd
-#+END_SRC
+  To build:
+  #+BEGIN_SRC bash
+    mkdir -p build/release
+    pushd build/release
+    cmake ../.. -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=../../vcpkg/scripts/buildsystems/vcpkg.cmake 
+    make -j
+    popd
+  #+END_SRC
 
+  And to run an example:
+  #+BEGIN_SRC bash
+    ./build/release/src/visualization/Demo
+  #+END_SRC
 
-    find_package(Eigen3 CONFIG REQUIRED)
-    target_link_libraries(main PRIVATE Eigen3::Eigen)
-
-    find_package(MagnumIntegration CONFIG REQUIRED)
-    target_link_libraries(main PRIVATE MagnumIntegration::imgui)
-
-
-
-#+BEGIN_SRC 
-mkdir -p build/release
-pushd build/release
-cmake ../.. -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=../../vcpkg/scripts/buildsystems/vcpkg.cmake 
-popd
-#+END_SRC
+  
+  
