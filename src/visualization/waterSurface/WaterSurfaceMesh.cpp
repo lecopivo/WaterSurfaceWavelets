@@ -76,7 +76,7 @@ void WaterSurfaceMesh::loadProfile(
                                          profileBuffer.m_data.size() *
                                              sizeof(std::array<float, 4>));
 
-  ImageView1D image(PixelFormat::RGBA, PixelType::Float, profileBuffer.m_data.size(),
+  ImageView1D image(GL::PixelFormat::RGBA, PixelType::Float, profileBuffer.m_data.size(),
                     data);
 
   _profileTexture.setWrapping(Sampler::Wrapping::Repeat)

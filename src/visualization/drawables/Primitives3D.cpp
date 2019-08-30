@@ -8,8 +8,8 @@ namespace Drawables {
 using namespace Magnum::Math::Literals;
 
 DrawableMesh::DrawableMesh(SceneBase3D::Object3D *parent, SceneGraph::DrawableGroup3D *group)
-    : SceneBase3D::Object3D{parent}, SceneGraph::Drawable3D{*this, group},
-      _shader(Shaders::Phong{}) {
+  : SceneBase3D::Object3D{parent}, SceneGraph::Drawable3D{*this, group}, _shader{Shaders::Phong{}} {
+  
 
   // auto &s = std::get<Shaders::Phong>(_shader);
   auto &s = _shader;
@@ -21,7 +21,7 @@ DrawableMesh::DrawableMesh(SceneBase3D::Object3D *parent, SceneGraph::DrawableGr
   _mesh.setPrimitive(MeshPrimitive::Triangles)
       .setCount(_indices.size())
       .addVertexBuffer(_vertexBuffer, 0, GShader::Position{}, GShader::Normal{},
-                       GShader::Color{GShader::Color::Components::Four})
+                       GShader::Color4{})
       .setIndexBuffer(_indexBuffer, 0, Mesh::IndexType::UnsignedInt);
 }
 

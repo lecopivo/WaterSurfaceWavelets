@@ -9,8 +9,8 @@ SceneBase3D::SceneBase3D(const Arguments &arguments)
                                 .setTitle("SceneBase3D")
                                 .setWindowFlags(Sdl2Application::Configuration::
                                                     WindowFlag::Resizable)
-                                .setSize({1200, 800})
-                                .setSampleCount(16)},
+                                .setSize({1200, 800}),
+                            GLConfiguration{}.setSampleCount(16)},
       _camera(_scene) {
 
   /* Configure OpenGL state */
@@ -19,11 +19,13 @@ SceneBase3D::SceneBase3D(const Arguments &arguments)
   Renderer::enable(Renderer::Feature::Multisampling);
 
   /* Configure camera */
-  viewportEvent(defaultFramebuffer.viewport().size()); // set up camera
+  viewportEvent(GL::defaultFramebuffer.viewport().size()); // set up camera
+  
+  _gui = ImGuiIntegration::Context(Vector2{windowSize()}/dpiScaling(), windowSize(), framebufferSize());
 }
 
 void SceneBase3D::drawEvent() {
-  defaultFramebuffer.clear(FramebufferClear::Color | FramebufferClear::Depth);
+  GL::defaultFramebuffer.clear(FramebufferClear::Color | FramebufferClear::Depth);
 
   update();
 
@@ -40,7 +42,7 @@ void SceneBase3D::update() {
 }
 
 void SceneBase3D::drawGui() {
-  _gui.newFrame(windowSize(), defaultFramebuffer.viewport().size());
+  _gui.newFrame();
 
   ImGui::Text("You should override drawGui function!");
 
@@ -58,14 +60,14 @@ void SceneBase3D::showNavigationHelp() const {
 }
 
 void SceneBase3D::viewportEvent(const Vector2i &size) {
-  defaultFramebuffer.setViewport({{}, size});
+  GL::defaultFramebuffer.setViewport({{}, size});
 
   _camera.setProjectionMatrix(Matrix4::perspectiveProjection(
       Deg{60.0}, Vector2{size}.aspectRatio(), 0.1f, 1000.0f));
 }
 
 void SceneBase3D::keyPressEvent(KeyEvent &event) {
-  if (_gui.keyPressEvent(event)) {
+  if (_gui.handleKeyPressEvent(event)) {
     redraw();
     return;
   }
@@ -82,14 +84,14 @@ void SceneBase3D::keyPressEvent(KeyEvent &event) {
 }
 
 void SceneBase3D::keyReleaseEvent(KeyEvent &event) {
-  if (_gui.keyReleaseEvent(event)) {
+  if (_gui.handleKeyReleaseEvent(event)) {
     redraw();
     return;
   }
 }
 
 void SceneBase3D::mousePressEvent(MouseEvent &event) {
-  if (_gui.mousePressEvent(event)) {
+  if (_gui.handleMousePressEvent(event)) {
     std::cout.flush();
     redraw();
     return;
@@ -102,7 +104,7 @@ void SceneBase3D::mousePressEvent(MouseEvent &event) {
 }
 
 void SceneBase3D::mouseReleaseEvent(MouseEvent &event) {
-  if (_gui.mouseReleaseEvent(event)) {
+  if (_gui.handleMouseReleaseEvent(event)) {
     redraw();
     return;
   }
@@ -112,14 +114,14 @@ void SceneBase3D::mouseReleaseEvent(MouseEvent &event) {
 }
 
 void SceneBase3D::mouseMoveEvent(MouseMoveEvent &event) {
-  if (_gui.mouseMoveEvent(event)) {
+  if (_gui.handleMouseMoveEvent(event)) {
     redraw();
     return;
   }
 
   Vector2i mousePosNew = event.position();
   Vector2i mousePosOld = _previousMousePosition;
-  Vector2i screenSize  = defaultFramebuffer.viewport().size();
+  Vector2i screenSize  = GL::defaultFramebuffer.viewport().size();
 
   if ((event.modifiers() & MouseMoveEvent::Modifier::Alt) &&
       (event.buttons() & MouseMoveEvent::Button::Left))
@@ -139,14 +141,14 @@ void SceneBase3D::mouseMoveEvent(MouseMoveEvent &event) {
 }
 
 void SceneBase3D::mouseScrollEvent(MouseScrollEvent &event) {
-  if (_gui.mouseScrollEvent(event)) {
+  if (_gui.handleMouseScrollEvent(event)) {
     redraw();
     return;
   }
 }
 
 void SceneBase3D::textInputEvent(TextInputEvent &event) {
-  if (_gui.textInputEvent(event)) {
+  if (_gui.handleTextInputEvent(event)) {
     redraw();
     return;
   }

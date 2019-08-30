@@ -1,9 +1,0 @@
-find_package(Corrade REQUIRED Utility)
-set_directory_properties(PROPERTIES CORRADE_USE_PEDANTIC_FLAGS ON)
-
-add_library(WaterSurface ${WaterSurfaceShaders_RCS} WaterSurfaceShader.cpp WaterSurfaceMesh.cpp)
-
-
-
-#add_executable(main main.cpp ${WaterSurfaceShaders_RCS})
-#target_link_libraries(main PRIVATE Corrade::Utility)

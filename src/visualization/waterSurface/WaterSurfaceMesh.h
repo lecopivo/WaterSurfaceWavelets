@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Magnum/Buffer.h>
+#include <Magnum/GL/Buffer.h>
 #include <Magnum/DefaultFramebuffer.h>
 #include <Magnum/Image.h>
 #include <Magnum/ImageView.h>
@@ -14,19 +14,19 @@
 #include <Magnum/Primitives/Icosphere.h>
 #include <Magnum/Primitives/Plane.h>
 #include <Magnum/Primitives/UVSphere.h>
-#include <Magnum/Renderer.h>
+#include <Magnum/GL/Renderer.h>
 #include <Magnum/SceneGraph/Camera.h>
 #include <Magnum/SceneGraph/Drawable.h>
 #include <Magnum/SceneGraph/MatrixTransformation3D.h>
 #include <Magnum/SceneGraph/Scene.h>
-#include <Magnum/Shader.h>
+#include <Magnum/GL/Shader.h>
 #include <Magnum/Shaders/Flat.h>
 #include <Magnum/Shaders/Generic.h>
 #include <Magnum/Shaders/MeshVisualizer.h>
 #include <Magnum/Shaders/Phong.h>
 #include <Magnum/Shaders/VertexColor.h>
-#include <Magnum/Texture.h>
-#include <Magnum/TextureFormat.h>
+#include <Magnum/GL/Texture.h>
+#include <Magnum/GL/TextureFormat.h>
 #include <Magnum/Trade/MeshData3D.h>
 
 #include <iostream>
@@ -72,8 +72,8 @@ private:
             SceneGraph::Camera3D &camera) override;
 
 public:
-  Mesh   _mesh;
-  Buffer _vertexBuffer, _indexBuffer;
+  GL::Mesh   _mesh;
+  GL::Buffer _vertexBuffer, _indexBuffer;
   bool _showTriangulation = false;
 
   Shaders::WaterSurfaceShader _shader;
@@ -81,7 +81,7 @@ public:
   std::vector<VertexData>  _data;
   std::vector<UnsignedInt> _indices;
 
-  Texture1D _profileTexture;
+  GL::Texture1D _profileTexture;
 };
 
 } // namespace Magnum

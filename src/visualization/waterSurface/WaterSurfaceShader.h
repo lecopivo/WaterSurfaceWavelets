@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Magnum/AbstractShaderProgram.h"
+#include "Magnum/GL/AbstractShaderProgram.h"
 #include "Magnum/Math/Color.h"
 #include "Magnum/Math/Matrix4.h"
 #include "Magnum/Shaders/Generic.h"
@@ -14,9 +14,9 @@ namespace Shaders {
 
 class WaterSurfaceShader : public AbstractShaderProgram {
 public:
-  typedef Attribute<0, Vector3> Position;
+  typedef GL::Attribute<0, Vector3> Position;
 
-  template <int I> using Amplitude = Attribute<1 + I, Vector4>;
+  template <int I> using Amplitude = GL::Attribute<1 + I, Vector4>;
 
   explicit WaterSurfaceShader();
 
@@ -70,7 +70,7 @@ public:
     return *this;
   }
 
-  WaterSurfaceShader &bindTexture(Texture1D &texture) {
+  WaterSurfaceShader &bindTexture(GL::Texture1D &texture) {
     texture.bind(TextureLayer);
     return *this;
   }
@@ -81,7 +81,7 @@ private:
   Int _lightPositionUniform, _ambientColorUniform, _colorUniform,
       _transformationMatrixUniform, _normalMatrixUniform,
       _projectionMatrixUniform, _timeUniform, _profilePeriodUniform,
-    _gerstnerParameterUniform,_waveDirectionToShowUniform;
+      _gerstnerParameterUniform, _waveDirectionToShowUniform;
 };
 
 } // namespace Shaders

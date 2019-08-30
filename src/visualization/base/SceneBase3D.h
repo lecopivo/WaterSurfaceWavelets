@@ -1,6 +1,7 @@
 #pragma once
 
-#include <Magnum/Buffer.h>
+
+#include <Magnum/GL/Buffer.h>
 #include <Magnum/DefaultFramebuffer.h>
 #include <Magnum/Math/Color.h>
 #include <Magnum/Mesh.h>
@@ -12,17 +13,18 @@
 #include <Magnum/Primitives/Icosphere.h>
 #include <Magnum/Primitives/Plane.h>
 #include <Magnum/Primitives/UVSphere.h>
-#include <Magnum/Renderer.h>
+#include <Magnum/GL/Renderer.h>
 #include <Magnum/SceneGraph/Camera.h>
 #include <Magnum/SceneGraph/Drawable.h>
 #include <Magnum/SceneGraph/MatrixTransformation3D.h>
 #include <Magnum/SceneGraph/Scene.h>
-#include <Magnum/Shader.h>
+#include <Magnum/GL/Shader.h>
 #include <Magnum/Shaders/Phong.h>
 #include <Magnum/Shaders/VertexColor.h>
 #include <Magnum/Trade/MeshData3D.h>
 
-#include <MagnumImGui.h>
+// #include <MagnumImGui.h>
+#include <Magnum/ImGuiIntegration/Context.hpp>
 #include <imgui.h>
 
 #include "Camera.h"
@@ -65,7 +67,8 @@ public:
   Vector2i                  _previousMousePosition;
   Camera<Object3D, Scene3D> _camera;
 
-  MagnumImGui _gui;
+  // MagnumImGui _gui;
+  ImGuiIntegration::Context _gui{NoCreate};
 };
 
 } // namespace Magnum

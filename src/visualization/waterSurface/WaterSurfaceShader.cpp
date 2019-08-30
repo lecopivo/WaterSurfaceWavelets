@@ -1,10 +1,11 @@
 #include "WaterSurfaceShader.h"
 
+#include <Corrade/Containers/Reference.h>
 #include <Corrade/Utility/Resource.h>
 
-#include "Magnum/Extensions.h"
-#include "Magnum/Shader.h"
-#include "Magnum/Texture.h"
+#include <Magnum/Extensions.h>
+#include <Magnum/Shader.h>
+#include <Magnum/Texture.h>
 
 namespace Magnum {
 namespace Shaders {
@@ -13,7 +14,7 @@ WaterSurfaceShader::WaterSurfaceShader() {
 
   Utility::Resource rs("WaterSurface");
 
-  Shader vert{Version::GL330, Shader::Type::Vertex},
+  GL::Shader vert{Version::GL330, Shader::Type::Vertex},
       frag{Version::GL330, Shader::Type::Fragment};
 
   vert.addSource(rs.get("DirectionNumber.h"))
@@ -25,7 +26,7 @@ WaterSurfaceShader::WaterSurfaceShader() {
       .addSource(rs.get("WaterSurfaceShader.glsl"))
       .addSource(rs.get("WaterSurfaceShader.frag"));
 
-  CORRADE_INTERNAL_ASSERT(Shader::compile({vert, frag}));
+  CORRADE_INTERNAL_ASSERT_OUTPUT(GL::Shader::compile({vert, frag}));
   attachShaders({vert, frag});
   CORRADE_INTERNAL_ASSERT(link());
 

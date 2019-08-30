@@ -3,3 +3,28 @@
 [[file:teaser.png]]
 
 
+
+
+Install prerequisites
+#+BEGIN_SRC 
+pushd vcpkg
+./bootstrap-vcpkg.sh 
+./vcpkg install magnum magnum-integration[imgui]
+popd
+#+END_SRC
+
+
+    find_package(Eigen3 CONFIG REQUIRED)
+    target_link_libraries(main PRIVATE Eigen3::Eigen)
+
+    find_package(MagnumIntegration CONFIG REQUIRED)
+    target_link_libraries(main PRIVATE MagnumIntegration::imgui)
+
+
+
+#+BEGIN_SRC 
+mkdir -p build/release
+pushd build/release
+cmake ../.. -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=../../vcpkg/scripts/buildsystems/vcpkg.cmake 
+popd
+#+END_SRC

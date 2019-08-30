@@ -52,6 +52,8 @@ public:
           -10 * tanh(0.1 * _waveGrid.m_enviroment.levelset({pos.x(), pos.y()}));
     });
     _plane->_shader.setDiffuseColor(Color4{0.4, 0.4, 0.4, 1});
+    
+    _camera.zoom(10);
   }
 
   void update() override {
@@ -92,7 +94,7 @@ public:
                        update_screen_grid);
 
     auto[dir, camPos] = _camera.cameraRayCast(
-        _previousMousePosition, defaultFramebuffer.viewport().size());
+					      _previousMousePosition, GL::defaultFramebuffer.viewport().size());
 
     // float t = -camPos.z()/dir.z();
     // Vector3 pos = camPos + t * dir;
@@ -100,7 +102,7 @@ public:
   }
 
   void drawGui() override {
-    _gui.newFrame(windowSize(), defaultFramebuffer.viewport().size());
+    _gui.newFrame();
 
     ImGui::Text("Water Surface Wavelts Demo!");
 
