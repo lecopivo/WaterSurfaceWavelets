@@ -6,7 +6,7 @@
 
   Download repository:
   #+BEGIN_SRC bash
-  git clone --recursive 
+  git clone --recursive https://github.com/lecopivo/WaterSurfaceWavelets.git
   #+END_SRC
 
   Install prerequisites(takes couple of minutes):
