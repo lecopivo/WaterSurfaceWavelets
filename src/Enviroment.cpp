@@ -12,7 +12,7 @@ namespace WaterWavelets {
 
 auto &raw_data = harbor_data;
 
-const int N = sqrt(raw_data.size());
+const int N = sqrt(sizeof(raw_data) / sizeof(float));
 
 auto data_grid = [](int i, int j) -> float {
   // outside of the data grid just return some high arbitrary number

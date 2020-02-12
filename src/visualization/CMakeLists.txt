@@ -15,7 +15,6 @@ find_package(Magnum REQUIRED
   SceneGraph
   Sdl2Application)
 
-# find_package(imgui REQUIRED ImGui)
 find_package(MagnumIntegration CONFIG REQUIRED ImGui)
 
 message("ImGui Found: ${ImGUi_FOUND}")

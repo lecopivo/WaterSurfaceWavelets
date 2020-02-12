@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-#include <eigen3/Eigen/Dense>
+#include <Eigen/Dense>
 
 /*
  * Domain inteprolation - Interpolates function values only for pointS in the

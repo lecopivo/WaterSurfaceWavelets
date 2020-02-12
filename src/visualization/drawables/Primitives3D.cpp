@@ -145,8 +145,6 @@ Sphere::Sphere(SceneBase3D::Object3D *parent, SceneGraph::DrawableGroup3D *group
 
   auto meshData = Primitives::UVSphere::solid(rings, segments);
 
-#warning "Normals are incorrect!"
-
   _data.resize(meshData.positions(0).size());
   for (size_t i = 0; i < meshData.positions(0).size(); i++) {
     _data[i].position = Matrix4::rotationX(Rad{M_PI / 2})

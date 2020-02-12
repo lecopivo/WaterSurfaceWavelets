@@ -1,8 +1,11 @@
 cmake_minimum_required(VERSION 3.9)
 
-set(CMAKE_CXX_FLAGS -std=c++17)
+set(CMAKE_CXX_STANDARD 17)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/modules)
+
+# cmath on MSVC needs this to define M_PI etc.
+add_compile_definitions(_USE_MATH_DEFINES)
 
 find_package(OpenMP)
 if (OPENMP_FOUND)
