@@ -53,7 +53,7 @@ public:
   // std::vector<VertexData> newData = _data;
 
 #pragma omp parallel for
-    for (int i = 0; i < _data.size(); i++) {
+    for (size_t i = 0; i < _data.size(); i++) {
       fun(i, _data[i]);
     }
     bindBuffers(_data);
