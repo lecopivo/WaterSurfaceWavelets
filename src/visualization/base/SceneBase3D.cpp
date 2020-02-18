@@ -18,6 +18,9 @@ SceneBase3D::SceneBase3D(const Arguments &arguments)
   Renderer::enable(Renderer::Feature::FaceCulling);
   Renderer::enable(Renderer::Feature::Multisampling);
 
+  Renderer::setBlendEquation(Renderer::BlendEquation::Add, Renderer::BlendEquation::Add);
+  Renderer::setBlendFunction(Renderer::BlendFunction::SourceAlpha, Renderer::BlendFunction::OneMinusSourceAlpha);
+
   /* Configure camera */
   viewportEvent(GL::defaultFramebuffer.viewport().size()); // set up camera
   
@@ -31,7 +34,17 @@ void SceneBase3D::drawEvent() {
 
   _camera.draw(_drawables);
 
+  Renderer::enable(Renderer::Feature::Blending);
+  Renderer::enable(Renderer::Feature::ScissorTest);
+  Renderer::disable(Renderer::Feature::FaceCulling);
+  Renderer::disable(Renderer::Feature::DepthTest);
+
   drawGui();
+
+  Renderer::enable(Renderer::Feature::DepthTest);
+  Renderer::enable(Renderer::Feature::FaceCulling);
+  Renderer::disable(Renderer::Feature::ScissorTest);
+  Renderer::disable(Renderer::Feature::Blending);
 
   swapBuffers();
   redraw();

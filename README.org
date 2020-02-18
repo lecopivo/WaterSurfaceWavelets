@@ -13,7 +13,7 @@
   #+BEGIN_SRC bash
     pushd vcpkg
     ./bootstrap-vcpkg.sh 
-    ./vcpkg install magnum-integration[imgui]
+    ./vcpkg install magnum-integration[imgui] eigen3 egl-registry
     popd
   #+END_SRC
 
